@@ -40,7 +40,7 @@ main (int argc, char *argv[])
 	for (; iter != line_list.end (); ++iter) {
 		++line_no;
 		std::string str = *iter;
-		std::string::size_type pos = str.find ("-C");
+		std::string::size_type pos = str.find ("-C0");
 		if (pos == std::string::npos) {
 			continue;
 		}
