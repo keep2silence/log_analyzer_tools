@@ -90,6 +90,19 @@ static void parse_for_cancel_rsp (std::string& line, Cancel *pCancel)
 	pCancel->vol   = atoi (vol_str.substr (2).c_str ());
 }
 
+static void show_all (std::map<int, Order *>& order_map, PriceLevelMap& plm)
+{
+	std::cout << "------------ Order Info ------------" << std::endl;
+	std::map<int, Order *>::iterator iter = order_map.begin ();
+	for (; iter != order_map.end (); ++iter) {
+		Order *pOrder = iter->second;
+		std::string dir (pOrder->bsflag == BUY ? "BUY" : "SELL");
+		std::string of  (pOrder->offlag == OPEN ? "OPEN" : "OFFSET");
+		std::cout << "sysno: " << pOrder->sysno << " price: " << pOrder->price 
+			<< " bs: " << dir << " of: " << of << std::endl;
+	}
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -101,41 +114,25 @@ main (int argc, char *argv[])
 	PriceLevelMap plm;
 	std::fstream fs (argv[1]);
 	std::string line, ignored_str;
+	
+	/// sysno 作为key
+	std::map<int, Order *> order_map;
+	/// std::map<int, Order *> buy_offset_order_map;
+	/// std::map<int, Order *> sell_open_order_map;
+	/// std::map<int, Order *> sell_offset_order_map;
+	
+	std::list<Order *> hist_order_list;
+	std::list<Match *> hist_match_list;
+
 	int line_count = 0;
 	while (std::getline (fs, line)) {
 		/// 不分析定单请求，因为没有系统号
 		if (match (line, std::string ("定单应答")) == true) {
 			Order *pOrder = new Order;
 			parse_for_order_rsp (line, pOrder);
-			std::map<double, PriceLevel *, price_functor>::iterator iter =
-				plm.pricelevel_map.find (pOrder->price);			
-			if (iter == plm.pricelevel_map.end ()) {
-				PriceLevel *ppl = new PriceLevel;
-				ppl->price = pOrder->price;
-				if (pOrder->bsflag == BUY) {
-					if (pOrder->offlag == OPEN) {
-						ppl->buy_vol += pOrder->vol;
-					} else if (pOrder->offlag == OFFSET) {
-						ppl->buy_vol -= pOrder->vol;
-					} else {
-						abort ();
-					}
-				} else if (pOrder->bsflag == SELL) {
-					if (pOrder->offlag == OPEN) {
-						ppl->sell_vol += pOrder->vol;
-					} else if (pOrder->offlag == OFFSET) {
-						ppl->sell_vol -= pOrder->vol;
-					} else {
-						abort ();
-					}
-				} else {
-					abort ();
-				}
-				plm.pricelevel_map.insert (std::make_pair (pOrder->price, ppl));
-			} else {
-				PriceLevel *ppl = iter->second;
-			}
 
+			order_map.insert (std::make_pair (pOrder->sysno, pOrder));
+			show_all (order_map, plm);
 			std::cin >> ignored_str;
 			continue;
 		}
@@ -144,6 +141,7 @@ main (int argc, char *argv[])
 			Cancel *pCancel = new Cancel;
 			parse_for_cancel_rsp (line, pCancel);
 
+			show_all (order_map, plm);
 			std::cin >> ignored_str;
 			continue;
 		}
@@ -151,7 +149,73 @@ main (int argc, char *argv[])
 		if (match (line, std::string ("成交通知")) == true) {
 			Match *pMatch = new Match;
 			parse_for_match_rsp (line, pMatch);
+			/// 更新持仓
+			std::map<double, PriceLevel *, price_functor>::iterator iter =
+				plm.pricelevel_map.find (pMatch->price);			
+			if (iter == plm.pricelevel_map.end ()) {
+				PriceLevel *ppl = new PriceLevel;
+				ppl->price = pMatch->price;
+				if (pMatch->bsflag == BUY) {
+					if (pMatch->offlag == OPEN) {
+						ppl->buy_vol += pMatch->vol;
+					} else if (pMatch->offlag == OFFSET) {
+						ppl->buy_vol -= pMatch->vol;
+					} else {
+						abort ();
+					}
+				} else if (pMatch->bsflag == SELL) {
+					if (pMatch->offlag == OPEN) {
+						ppl->sell_vol += pMatch->vol;
+					} else if (pMatch->offlag == OFFSET) {
+						ppl->sell_vol -= pMatch->vol;
+					} else {
+						abort ();
+					}
+				} else {
+					abort ();
+				}
+				plm.pricelevel_map.insert (std::make_pair (pMatch->price, ppl));
+			} else {
+				PriceLevel *ppl = iter->second;
+				
+				ppl->price = pMatch->price;
+				if (pMatch->bsflag == BUY) {
+					if (pMatch->offlag == OPEN) {
+						ppl->buy_vol += pMatch->vol;
+					} else if (pMatch->offlag == OFFSET) {
+						ppl->buy_vol -= pMatch->vol;
+					} else {
+						abort ();
+					}
+				} else if (pMatch->bsflag == SELL) {
+					if (pMatch->offlag == OPEN) {
+						ppl->sell_vol += pMatch->vol;
+					} else if (pMatch->offlag == OFFSET) {
+						ppl->sell_vol -= pMatch->vol;
+					} else {
+						abort ();
+					}
+				} else {
+					abort ();
+				}
+			}
+			/// 更新定单队列
+			std::map<int, Order *>::iterator it = order_map.find (pMatch->sysno);
+			if (it == order_map.end ()) {
+				std::cout << "can't find order sysno: " << pMatch->sysno << std::endl;
+				abort ();
+			} else {
+				Order *pOrder = it->second;
+				pOrder->vol -= pMatch->vol;
+				assert (pOrder->vol >= 0);
+				if (pOrder->vol == 0) {
+					order_map.erase (it);
+					hist_order_list.push_back (pOrder);
+				}
+			}
+			hist_match_list.push_back (pMatch);
 
+			show_all (order_map, plm);
 			std::cin >> ignored_str;
 			continue;
 		}
