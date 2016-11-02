@@ -141,8 +141,8 @@ main (int argc, char *argv[])
 			std::cout << "---------- Action ----------" << std::endl; 
 			Order *pOrder = new Order;
 			parse_for_order_rsp (line, pOrder);
-			std::cout << "lno: " << line_count << ", rcv order rsp sysno: " 
-				<< pOrder->sysno << " insert que." << std::endl;
+			std::cout << "lno: " << line_count 
+				<< line.substr (line.find_last_of ('|')) << std::endl;
 
 			order_map.insert (std::make_pair (pOrder->sysno, pOrder));
 			show_all (order_map, plm);
@@ -163,8 +163,9 @@ main (int argc, char *argv[])
 				order_map.find (pCancel->batchno);
 			if (iter != order_map.end ()) {
 				/// Order *pOrder = iter->second;
-				std::cout << "lno: " << line_count << ", rcv cancel rsp sysno: " 
-					<< pCancel->batchno << " erase order." << std::endl;
+				std::cout << "lno: " << line_count 
+					<< line.substr (line.find_last_of ('|'))
+					<< " erase order." << std::endl;
 				order_map.erase (iter);
 			}
 			show_all (order_map, plm);
@@ -179,8 +180,9 @@ main (int argc, char *argv[])
 			std::cout << "---------- Action ----------" << std::endl; 
 			Match *pMatch = new Match;
 			parse_for_match_rsp (line, pMatch);
-			std::cout << "lno: " << line_count << ", rcv match rsp sysno: " 
-				<< pMatch->sysno << " update posi." << std::endl;
+			std::cout << "lno: " << line_count 
+				<< line.substr (line.find_last_of ('|'))
+				<< "update posi" << std::endl;
 			/// ¸üÐÂ³Ö²Ö
 			std::map<double, PriceLevel *, price_functor>::iterator iter =
 				plm.pricelevel_map.find (pMatch->price);			
@@ -241,13 +243,15 @@ main (int argc, char *argv[])
 				pOrder->vol -= pMatch->vol;
 				assert (pOrder->vol >= 0);
 				if (pOrder->vol == 0) {
-					std::cout << "lno: " << line_count << ", rcv match rsp sysno: " 
-						<< pMatch->sysno << " erase order." << std::endl;
+					std::cout << "lno: " << line_count 
+						<< line.substr (line.find_last_of ('|'))
+						<< "erase order" << std::endl;
 					order_map.erase (it);
 					hist_order_list.push_back (pOrder);
 				} else {
-					std::cout << "lno: " << line_count << ", rcv match rsp sysno: " 
-						<< pMatch->sysno << " update order." << std::endl;
+					std::cout << "lno: " << line_count 
+						<< line.substr (line.find_last_of ('|'))
+						<< "update order" << std::endl;
 				}
 			}
 			hist_match_list.push_back (pMatch);
