@@ -159,6 +159,7 @@ main (int argc, char *argv[])
             sysno_set.insert (atoi (str_sysno.c_str ()));
 	}
 	
+	std::cout << line_list.size () << std::endl;
 	/// 重复项目消除后，要进行客户过滤，由于撤单应答没有客户号，需要根据
 	/// BatchNo和SysNo对应关系进行过滤
 	iter = line_list.begin ();
@@ -168,6 +169,7 @@ main (int argc, char *argv[])
         if (pos == std::string::npos) {
             pos = str.find ("撤单应答");
             if (pos == std::string::npos) {
+				/// std::cout << "EEE " << str << std::endl;
                 continue;
 			} else {
 				pos = str.find ("-B");
