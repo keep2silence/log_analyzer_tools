@@ -93,14 +93,24 @@ static void parse_for_cancel_rsp (std::string& line, Cancel *pCancel)
 static void show_all (std::map<int, Order *>& order_map, PriceLevelMap& plm)
 {
 	std::cout << "------------ Order Info ------------" << std::endl;
+	std::map<double, Order *, price_functor> price_order_map;
 	std::map<int, Order *>::iterator iter = order_map.begin ();
+	/// 按照价格进行排序
 	for (; iter != order_map.end (); ++iter) {
 		Order *pOrder = iter->second;
+		price_order_map.insert (std::make_pair (pOrder->price, pOrder));
+	}
+
+	std::map<double, Order *, price_functor>::reverse_iterator riter = 
+		price_order_map.rbegin ();
+	for (; riter != price_order_map.rend (); ++riter) {
+		Order *pOrder = riter->second;
 		std::string dir (pOrder->bsflag == BUY ? "BUY" : "SELL");
 		std::string of  (pOrder->offlag == OPEN ? "OPEN" : "OFFSET");
 		std::cout << "sysno: " << pOrder->sysno << " price: " << pOrder->price 
 			<< ", bs: " << dir << ", of: " << of << ", vol: " << pOrder->vol << std::endl;
 	}
+
 
 	std::cout << "------------ Posi Info ------------" << std::endl;
 	std::map<double, PriceLevel *, price_functor>::iterator piter = 
