@@ -69,6 +69,7 @@ class PriceLevel
 {
 public:
 	PriceLevel ()
+	: price (0.0), buy_vol (0), sell_vol (0), index (0)
 	{}
 
 	PriceLevel (double price_, int index_)
@@ -79,8 +80,8 @@ public:
 	int    buy_vol;
 	int    sell_vol;
 	int    index;
-	std::list<Order *> buy_order_list;
-	std::list<Order *> sell_order_list;
+	/// std::list<Order *> buy_order_list;
+	/// std::list<Order *> sell_order_list;
 };
 
 

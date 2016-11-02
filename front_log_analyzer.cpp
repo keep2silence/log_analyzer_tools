@@ -99,10 +99,17 @@ static void show_all (std::map<int, Order *>& order_map, PriceLevelMap& plm)
 		std::string dir (pOrder->bsflag == BUY ? "BUY" : "SELL");
 		std::string of  (pOrder->offlag == OPEN ? "OPEN" : "OFFSET");
 		std::cout << "sysno: " << pOrder->sysno << " price: " << pOrder->price 
-			<< " bs: " << dir << " of: " << of << " vol: " << pOrder->vol << std::endl;
+			<< ", bs: " << dir << ", of: " << of << ", vol: " << pOrder->vol << std::endl;
 	}
 
 	std::cout << "------------ Posi Info ------------" << std::endl;
+	std::map<double, PriceLevel *, price_functor>::iterator piter = 
+		plm.pricelevel_map.begin ();
+	for (; piter != plm.pricelevel_map.end (); ++piter) {
+		PriceLevel *pl = piter->second;
+		std::cout << "price: " << pl->price << ", buy_vol: " << pl->buy_vol 
+			<< ", sell_vol: " << pl->sell_vol << std::endl;
+	}
 }
 
 int
@@ -128,21 +135,26 @@ main (int argc, char *argv[])
 
 	int line_count = 0;
 	while (std::getline (fs, line)) {
-		std::cout << "---------- Action ----------" << std::endl; 
 		/// 不分析定单请求，因为没有系统号
+		++line_count;
 		if (match (line, std::string ("定单应答")) == true) {
+			std::cout << "---------- Action ----------" << std::endl; 
 			Order *pOrder = new Order;
 			parse_for_order_rsp (line, pOrder);
-			std::cout << "rcv order rsp sysno: " << pOrder->sysno 	
-				<< " insert que." << std::endl;
+			std::cout << "lno: " << line_count << ", rcv order rsp sysno: " 
+				<< pOrder->sysno << " insert que." << std::endl;
 
 			order_map.insert (std::make_pair (pOrder->sysno, pOrder));
 			show_all (order_map, plm);
 			std::cin >> ignored_str;
+			std::cout << 
+				"\n\033[1m\033[31m*********** dispose next pkg **********\033[37m" 
+				<< std::endl;
 			continue;
 		}
 
 		if (match (line, std::string ("撤单应答")) == true) {
+			std::cout << "---------- Action ----------" << std::endl; 
 			Cancel *pCancel = new Cancel;
 			parse_for_cancel_rsp (line, pCancel);
 
@@ -151,20 +163,24 @@ main (int argc, char *argv[])
 				order_map.find (pCancel->batchno);
 			if (iter != order_map.end ()) {
 				/// Order *pOrder = iter->second;
-				std::cout << "rcv cancel rsp sysno: " << pCancel->batchno 	
-					<< " erase order." << std::endl;
+				std::cout << "lno: " << line_count << ", rcv cancel rsp sysno: " 
+					<< pCancel->batchno << " erase order." << std::endl;
 				order_map.erase (iter);
 			}
 			show_all (order_map, plm);
 			std::cin >> ignored_str;
+			std::cout << 
+				"\n\033[1m\033[31m*********** dispose next pkg **********\033[37m" 
+				<< std::endl;
 			continue;
 		}
 
 		if (match (line, std::string ("成交通知")) == true) {
+			std::cout << "---------- Action ----------" << std::endl; 
 			Match *pMatch = new Match;
 			parse_for_match_rsp (line, pMatch);
-			std::cout << "rcv match rsp sysno: " << pMatch->sysno 	
-				<< " update posi." << std::endl;
+			std::cout << "lno: " << line_count << ", rcv match rsp sysno: " 
+				<< pMatch->sysno << " update posi." << std::endl;
 			/// 更新持仓
 			std::map<double, PriceLevel *, price_functor>::iterator iter =
 				plm.pricelevel_map.find (pMatch->price);			
@@ -175,7 +191,7 @@ main (int argc, char *argv[])
 					if (pMatch->offlag == OPEN) {
 						ppl->buy_vol += pMatch->vol;
 					} else if (pMatch->offlag == OFFSET) {
-						ppl->buy_vol -= pMatch->vol;
+						ppl->sell_vol -= pMatch->vol;
 					} else {
 						abort ();
 					}
@@ -183,7 +199,7 @@ main (int argc, char *argv[])
 					if (pMatch->offlag == OPEN) {
 						ppl->sell_vol += pMatch->vol;
 					} else if (pMatch->offlag == OFFSET) {
-						ppl->sell_vol -= pMatch->vol;
+						ppl->buy_vol -= pMatch->vol;
 					} else {
 						abort ();
 					}
@@ -199,7 +215,7 @@ main (int argc, char *argv[])
 					if (pMatch->offlag == OPEN) {
 						ppl->buy_vol += pMatch->vol;
 					} else if (pMatch->offlag == OFFSET) {
-						ppl->buy_vol -= pMatch->vol;
+						ppl->sell_vol -= pMatch->vol;
 					} else {
 						abort ();
 					}
@@ -207,7 +223,7 @@ main (int argc, char *argv[])
 					if (pMatch->offlag == OPEN) {
 						ppl->sell_vol += pMatch->vol;
 					} else if (pMatch->offlag == OFFSET) {
-						ppl->sell_vol -= pMatch->vol;
+						ppl->buy_vol -= pMatch->vol;
 					} else {
 						abort ();
 					}
@@ -225,19 +241,22 @@ main (int argc, char *argv[])
 				pOrder->vol -= pMatch->vol;
 				assert (pOrder->vol >= 0);
 				if (pOrder->vol == 0) {
-					std::cout << "rcv match rsp sysno: " << pMatch->sysno 	
-						<< " erase order." << std::endl;
+					std::cout << "lno: " << line_count << ", rcv match rsp sysno: " 
+						<< pMatch->sysno << " erase order." << std::endl;
 					order_map.erase (it);
 					hist_order_list.push_back (pOrder);
 				} else {
-					std::cout << "rcv match rsp sysno: " << pMatch->sysno 	
-						<< " update order." << std::endl;
+					std::cout << "lno: " << line_count << ", rcv match rsp sysno: " 
+						<< pMatch->sysno << " update order." << std::endl;
 				}
 			}
 			hist_match_list.push_back (pMatch);
 
 			show_all (order_map, plm);
 			std::cin >> ignored_str;
+			std::cout << 
+				"\n\033[1m\033[31m*********** dispose next pkg **********\033[37m" 
+				<< std::endl;
 			continue;
 		}
 	}
