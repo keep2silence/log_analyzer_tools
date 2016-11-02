@@ -49,8 +49,8 @@ main (int argc, char *argv[])
 				if (pos != std::string::npos) {
 					pos = str.find ("-B");
 					if (pos == std::string::npos) {
-						++iter;
-						continue;
+						std::cout << str << " 撤单应答没有批次号" << std::endl;
+						return -1;
 					}
 					std::string str_sysno (str.substr (pos + 2, 8));
 
@@ -58,20 +58,19 @@ main (int argc, char *argv[])
 						cancel_sysno_set.insert (atoi (str_sysno.c_str ()));
 					if (ret.second != true) {
 						iter = line_list.erase (iter);
-						continue;
 					} else {
 						++iter;
-						continue;
 					}
-				}
-				++iter;
-				continue;
-			} else {
-				/// 处理成交通知
-				pos = str.find ("-S");
-				if (pos == std::string::npos) {
+					continue;
+				} else {
 					++iter;
 					continue;
+				}
+			} else { /// 处理成交通知
+				pos = str.find ("-S");
+				if (pos == std::string::npos) {
+					std::cout << str << " 成交通知没有系统号" << std::endl;
+					return -1;
 				}
 				std::string str_sysno (str.substr (pos + 2, 8));
 
@@ -79,34 +78,31 @@ main (int argc, char *argv[])
 					match_sysno_set.insert (atoi (str_sysno.c_str ()));
 				if (ret.second != true) {
 					iter = line_list.erase (iter);
-					continue;
 				} else {
 					++iter;
-					continue;
 				}
+				continue;
 			}
-			
-			++iter;
-			continue;
-		}
+		} else { /// 处理定单应答
+			pos = str.find ("-S");
+			if (pos == std::string::npos) {
+				std::cout << str << " 定单应答没有系统号" << std::endl;
+				return -1;
+			}
+			std::string str_sysno (str.substr (pos + 2, 8));
 
-		pos = str.find ("-S");
-		if (pos == std::string::npos) {
-			++iter;
-			continue;
-		}
-		std::string str_sysno (str.substr (pos + 2, 8));
-
-		std::pair <std::set<int>::iterator, bool> ret = 
-			sysno_set.insert (atoi (str_sysno.c_str ()));
-		if (ret.second != true) {
-			iter = line_list.erase (iter);
-			continue;
-		} else {
-			++iter;
+			std::pair <std::set<int>::iterator, bool> ret = 
+				sysno_set.insert (atoi (str_sysno.c_str ()));
+			if (ret.second != true) {
+				iter = line_list.erase (iter);
+				continue;
+			} else {
+				++iter;
+			}
 		}
 	}
 
+	std::cout << line_list.size () << std::endl;
 #if 0
 	/// 
 	line_count = 0;
@@ -136,6 +132,7 @@ main (int argc, char *argv[])
 			continue;
 		}
 	}
+	std::cout << line_list.size () << std::endl;
 
 	/// 根据客户号再取一次sysno
 	sysno_set.clear ();
@@ -172,18 +169,19 @@ main (int argc, char *argv[])
             pos = str.find ("撤单应答");
             if (pos == std::string::npos) {
                 continue;
-            }
-            pos = str.find ("-B");
-            if (pos == std::string::npos) {
-                std::cout << str << " ERROR" << std::endl;
-                return -1;
-            }
-            std::string str_batchno (str.substr (pos + 2, 8));
-            std::set<int>::iterator set_iter =
-                sysno_set.find (atoi (str_batchno.c_str ()));
-            if (set_iter != sysno_set.end ()) {
-                std::cout << str << std::endl;
-            }
+			} else {
+				pos = str.find ("-B");
+				if (pos == std::string::npos) {
+					std::cout << str << " ERROR" << std::endl;
+					return -1;
+				}
+				std::string str_batchno (str.substr (pos + 2, 8));
+				std::set<int>::iterator set_iter =
+					sysno_set.find (atoi (str_batchno.c_str ()));
+				if (set_iter != sysno_set.end ()) {
+					std::cout << str << std::endl;
+				}
+			}
         } else {
             std::cout << str << std::endl;
         }
