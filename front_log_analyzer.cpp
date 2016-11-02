@@ -99,8 +99,10 @@ static void show_all (std::map<int, Order *>& order_map, PriceLevelMap& plm)
 		std::string dir (pOrder->bsflag == BUY ? "BUY" : "SELL");
 		std::string of  (pOrder->offlag == OPEN ? "OPEN" : "OFFSET");
 		std::cout << "sysno: " << pOrder->sysno << " price: " << pOrder->price 
-			<< " bs: " << dir << " of: " << of << std::endl;
+			<< " bs: " << dir << " of: " << of << " vol: " << pOrder->vol << std::endl;
 	}
+
+	std::cout << "------------ Posi Info ------------" << std::endl;
 }
 
 int
@@ -126,10 +128,13 @@ main (int argc, char *argv[])
 
 	int line_count = 0;
 	while (std::getline (fs, line)) {
+		std::cout << "---------- Action ----------" << std::endl; 
 		/// 不分析定单请求，因为没有系统号
 		if (match (line, std::string ("定单应答")) == true) {
 			Order *pOrder = new Order;
 			parse_for_order_rsp (line, pOrder);
+			std::cout << "rcv order rsp sysno: " << pOrder->sysno 	
+				<< " insert que." << std::endl;
 
 			order_map.insert (std::make_pair (pOrder->sysno, pOrder));
 			show_all (order_map, plm);
@@ -141,6 +146,15 @@ main (int argc, char *argv[])
 			Cancel *pCancel = new Cancel;
 			parse_for_cancel_rsp (line, pCancel);
 
+			/// 撤单应答有可能在成交之后到达，这样就找不到定单了
+			std::map<int, Order *>::iterator iter =
+				order_map.find (pCancel->batchno);
+			if (iter != order_map.end ()) {
+				/// Order *pOrder = iter->second;
+				std::cout << "rcv cancel rsp sysno: " << pCancel->batchno 	
+					<< " erase order." << std::endl;
+				order_map.erase (iter);
+			}
 			show_all (order_map, plm);
 			std::cin >> ignored_str;
 			continue;
@@ -149,6 +163,8 @@ main (int argc, char *argv[])
 		if (match (line, std::string ("成交通知")) == true) {
 			Match *pMatch = new Match;
 			parse_for_match_rsp (line, pMatch);
+			std::cout << "rcv match rsp sysno: " << pMatch->sysno 	
+				<< " update posi." << std::endl;
 			/// 更新持仓
 			std::map<double, PriceLevel *, price_functor>::iterator iter =
 				plm.pricelevel_map.find (pMatch->price);			
@@ -209,8 +225,13 @@ main (int argc, char *argv[])
 				pOrder->vol -= pMatch->vol;
 				assert (pOrder->vol >= 0);
 				if (pOrder->vol == 0) {
+					std::cout << "rcv match rsp sysno: " << pMatch->sysno 	
+						<< " erase order." << std::endl;
 					order_map.erase (it);
 					hist_order_list.push_back (pOrder);
+				} else {
+					std::cout << "rcv match rsp sysno: " << pMatch->sysno 	
+						<< " update order." << std::endl;
 				}
 			}
 			hist_match_list.push_back (pMatch);
