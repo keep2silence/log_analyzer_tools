@@ -8,23 +8,59 @@
 #include <set>
 
 #include <stdlib.h>
+#include <unistd.h>
+
 /// 前置日志中由于总线二级订阅机制，一笔定单对应多笔定单应答和成交应答，这
 /// 些重复的信息导致日志分析比较困难，本程序试图删除这些重复信息
 int
 main (int argc, char *argv[])
 {
-	if (argc != 4) {
-		std::cout << "usage: ./front_log_filter logfile clientid contract" << std::endl;
-		return 0;
+	int opt = -1;
+	std::string log_file;
+	std::string target_clientid;
+	std::string target_contract;
+
+    while ((opt = getopt(argc, argv, "l:c:C:")) != -1) {
+        switch (opt) {
+            case 'l':
+				log_file = std::string (optarg);
+                break;
+            case 'c':
+				target_clientid = std::string (optarg);
+				break;
+			case 'C':
+				target_contract = std::string (optarg);
+				break;
+            default:
+                std::cout << "usage: ./front_log_analyzer [-i] logfile" << std::endl;
+				std::cout << "usage: ./front_log_filter -l logfile -c clientid -C contract" 
+							<< std::endl;
+                std::cout << "       -l 原始的前置日志文件" << std::endl;
+                std::cout << "       -c 客户号" << std::endl;
+                std::cout << "       -C 合约号，可选项如果不设置全部解析" << std::endl;
+                return -1;
+        }
+    }
+
+	if (log_file.empty ()) {
+		std::cout << "log file not set" << std::endl;
+		return -1;
+	}
+
+	if (target_clientid.empty ()) {
+		std::cout << "clientid not set" << std::endl;
+		return -1;
+	}
+
+	if (target_contract.empty ()) {
+		std::cout << "keep all contracts of client: " << target_clientid << std::endl;
 	}
 
 	std::set<int> sysno_set;
 	std::set<int> match_matchno_set;
 	std::set<int> cancel_sysno_set;
-	std::string target_clientid (argv[2]);
-	std::string target_contract (argv[3]);
 	std::list<std::string> line_list;
-	std::fstream fs (argv[1]);
+	std::fstream fs (log_file.c_str ());
 	std::string line;
 	int line_count = 0;
 	while (std::getline (fs, line)) {
@@ -36,23 +72,25 @@ main (int argc, char *argv[])
 	bool is_arb_contract = target_contract.find_first_of ('&') != std::string::npos;
 
 	std::list<std::string>::iterator iter = line_list.begin ();
-	/// 进行合约过滤
-    for (; iter != line_list.end ();) {
-        std::string str = *iter;
-        std::string::size_type pos = str.find (target_contract);
-        if (pos == std::string::npos) {
-			iter = line_list.erase (iter);
-            continue;
-		} else {
-			if (is_arb_contract == false) {
-				/// 删除套利合约
-				if (str.find_first_of ('&') != std::string::npos) {
-					iter = line_list.erase (iter);
-					continue;
+	if (target_contract.empty () == false) {
+		/// 进行合约过滤
+		for (; iter != line_list.end ();) {
+			std::string str = *iter;
+			std::string::size_type pos = str.find (target_contract);
+			if (pos == std::string::npos) {
+				iter = line_list.erase (iter);
+				continue;
+			} else {
+				if (is_arb_contract == false) {
+					/// 删除套利合约
+					if (str.find_first_of ('&') != std::string::npos) {
+						iter = line_list.erase (iter);
+						continue;
+					}
 				}
+				++iter;
+				continue;
 			}
-			++iter;
-			continue;
 		}
 	}
 	/// std::cout << line_list.size () << std::endl;
@@ -78,7 +116,7 @@ main (int argc, char *argv[])
 			continue;
 		}
 	}
-	std::cout << line_list.size () << std::endl;
+	/// std::cout << line_list.size () << std::endl;
 
 	iter = line_list.begin ();
 	int order_rsp_count = 0, match_rsp_count = 0, 
@@ -153,6 +191,7 @@ main (int argc, char *argv[])
 		continue;
 	}
 
+#if 0
 	std::cout << "order_rsp_count: " << order_rsp_count 
 		<< "left: " << sysno_set.size () << std::endl;
 	std::cout << "match_rsp_count: " << match_rsp_count
@@ -161,7 +200,6 @@ main (int argc, char *argv[])
 		<< "left: " << cancel_sysno_set.size () << std::endl;
 	std::cout << "other_count: " << other_count << std::endl;
 	
-#if 0
 	for (std::set<int>::iterator iter = cancel_sysno_set.begin ();
 		iter != cancel_sysno_set.end (); ++iter) {
 		std::cout << *iter << std::endl;
