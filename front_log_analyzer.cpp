@@ -128,10 +128,14 @@ main (int argc, char *argv[])
 {
 	int interactive_mode = 0;
 	int opt = -1;
-	while ((opt = getopt(argc, argv, "i")) != -1) {
+	std::string log_file;
+	while ((opt = getopt(argc, argv, "il:")) != -1) {
 		switch (opt) {
 			case 'i':
 				interactive_mode = 1;
+				break;
+			case 'l':
+				log_file = std::string (optarg);
 				break;
 			case 'h':
 			default:
@@ -141,12 +145,13 @@ main (int argc, char *argv[])
 		}
 	}
 
-	if (argc != 2) {
-		return 0;
+	if (log_file.empty ()) {
+		std::cout << "log file lost." << std::endl;
+		return -1;
 	}
 
 	PriceLevelMap plm;
-	std::fstream fs (argv[1]);
+	std::fstream fs (log_file.c_str ());
 	std::string line, ignored_str;
 	
 	/// sysno ×÷Îªkey
