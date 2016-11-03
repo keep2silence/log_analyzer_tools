@@ -19,7 +19,7 @@ main (int argc, char *argv[])
 	}
 
 	std::set<int> sysno_set;
-	std::set<int> match_sysno_set;
+	std::set<int> match_matchno_set;
 	std::set<int> cancel_sysno_set;
 	std::string target_clientid (argv[2]);
 	std::string target_contract (argv[3]);
@@ -67,15 +67,15 @@ main (int argc, char *argv[])
 					continue;
 				}
 			} else { /// 处理成交通知
-				pos = str.find ("-S");
+				pos = str.find ("-M"); /// 成交要用成交号对比，不能用sysno
 				if (pos == std::string::npos) {
-					std::cout << str << " 成交通知没有系统号" << std::endl;
+					std::cout << str << " 成交通知没有成交号" << std::endl;
 					return -1;
 				}
-				std::string str_sysno (str.substr (pos + 2, 8));
+				std::string str_matchno (str.substr (pos + 2, 8));
 
 				std::pair <std::set<int>::iterator, bool> ret = 
-					match_sysno_set.insert (atoi (str_sysno.c_str ()));
+					match_matchno_set.insert (atoi (str_matchno.c_str ()));
 				if (ret.second != true) {
 					iter = line_list.erase (iter);
 				} else {
@@ -102,7 +102,7 @@ main (int argc, char *argv[])
 		}
 	}
 
-	std::cout << line_list.size () << std::endl;
+	/// std::cout << line_list.size () << std::endl;
 #if 0
 	/// 
 	line_count = 0;
@@ -132,7 +132,7 @@ main (int argc, char *argv[])
 			continue;
 		}
 	}
-	std::cout << line_list.size () << std::endl;
+	/// std::cout << line_list.size () << std::endl;
 
 	/// 根据客户号再取一次sysno
 	sysno_set.clear ();
@@ -159,7 +159,7 @@ main (int argc, char *argv[])
             sysno_set.insert (atoi (str_sysno.c_str ()));
 	}
 	
-	std::cout << line_list.size () << std::endl;
+	/// std::cout << line_list.size () << std::endl;
 	/// 重复项目消除后，要进行客户过滤，由于撤单应答没有客户号，需要根据
 	/// BatchNo和SysNo对应关系进行过滤
 	iter = line_list.begin ();
