@@ -7,6 +7,7 @@
 #include <string>
 
 #include "PriceLevel.h"
+#include <unistd.h>
 
 /// 前置日志经过其他程序过滤后，已经是单客户单合约的所有交易。
 /// 本程序进行进一步的分析，此程序是人工单步执行，不考虑效率
@@ -93,7 +94,7 @@ static void parse_for_cancel_rsp (std::string& line, Cancel *pCancel)
 static void show_all (std::map<int, Order *>& order_map, PriceLevelMap& plm)
 {
 	std::cout << "------------ Order Info ------------" << std::endl;
-	std::map<double, Order *, price_functor> price_order_map;
+	std::multimap<double, Order *, price_functor> price_order_map;
 	std::map<int, Order *>::iterator iter = order_map.begin ();
 	/// 按照价格进行排序
 	for (; iter != order_map.end (); ++iter) {
@@ -125,8 +126,22 @@ static void show_all (std::map<int, Order *>& order_map, PriceLevelMap& plm)
 int
 main (int argc, char *argv[])
 {
+	int interactive_mode = 0;
+	int opt = -1;
+	while ((opt = getopt(argc, argv, "i")) != -1) {
+		switch (opt) {
+			case 'i':
+				interactive_mode = 1;
+				break;
+			case 'h':
+			default:
+				std::cout << "usage: ./front_log_analyzer [-i] logfile" << std::endl;
+				std::cout << "       -i 可选项，进入交互模式" << std::endl; 
+				return -1;
+		}
+	}
+
 	if (argc != 2) {
-		std::cout << "usage: ./front_log_analyzer logfile" << std::endl;
 		return 0;
 	}
 
@@ -156,10 +171,14 @@ main (int argc, char *argv[])
 
 			order_map.insert (std::make_pair (pOrder->sysno, pOrder));
 			show_all (order_map, plm);
-			std::cin >> ignored_str;
-			std::cout << 
-				"\n\033[1m\033[31m*********** dispose next pkg **********\033[37m" 
-				<< std::endl;
+			if (interactive_mode == 1) {
+				std::cin >> ignored_str;
+				std::cout << 
+					"\n\033[1m\033[31m*********** dispose next pkg **********\033[37m" 
+					<< std::endl;
+			} else {
+				std::cout << "*********** dispose next pkg **********" << std::endl;
+			}
 			continue;
 		}
 
@@ -179,10 +198,14 @@ main (int argc, char *argv[])
 				order_map.erase (iter);
 			}
 			show_all (order_map, plm);
-			std::cin >> ignored_str;
-			std::cout << 
-				"\n\033[1m\033[31m*********** dispose next pkg **********\033[37m" 
-				<< std::endl;
+			if (interactive_mode == 1) {
+				std::cin >> ignored_str;
+				std::cout << 
+					"\n\033[1m\033[31m*********** dispose next pkg **********\033[37m" 
+					<< std::endl;
+			} else {
+				std::cout << "*********** dispose next pkg **********" << std::endl;
+			}
 			continue;
 		}
 
@@ -267,10 +290,14 @@ main (int argc, char *argv[])
 			hist_match_list.push_back (pMatch);
 
 			show_all (order_map, plm);
-			std::cin >> ignored_str;
-			std::cout << 
-				"\n\033[1m\033[31m*********** dispose next pkg **********\033[37m" 
-				<< std::endl;
+			if (interactive_mode == 1) {
+				std::cin >> ignored_str;
+				std::cout << 
+					"\n\033[1m\033[31m*********** dispose next pkg **********\033[37m" 
+					<< std::endl;
+			} else {
+				std::cout << "*********** dispose next pkg **********" << std::endl;
+			}
 			continue;
 		}
 	}
