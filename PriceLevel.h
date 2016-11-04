@@ -28,6 +28,7 @@ public:
 	{}
 	
 	std::string contract;
+	std::string time;
 	BSFLAG bsflag;
 	OFFLAG offlag;
 	double price;
