@@ -63,7 +63,9 @@ main (int argc, char *argv[])
 	if (target_member_no.empty ()) {
 		std::cout << "member_no not set" << std::endl;
 		return -1;
-    }
+    } 
+
+	target_member_no = "Mem" + target_member_no;
 
 	std::set<int> sysno_set;
 	std::set<int> match_matchno_set;

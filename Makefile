@@ -6,5 +6,10 @@ front_log_analyzer: front_log_analyzer.cpp PriceLevel.h
 front_log_filter: front_log_filter.cpp
 	g++ -o $@ $^ -g -O3
 	
+debug:
+	g++ -o front_log_analyzer front_log_analyzer.cpp -g
+	g++ -o front_log_filter front_log_filter.cpp -g
+	
+
 clean:
 	rm -f front_log_analyzer front_log_filter
