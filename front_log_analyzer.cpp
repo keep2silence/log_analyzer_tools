@@ -367,7 +367,8 @@ main (int argc, char *argv[])
 				std::cout << "lno: " << line_count 
 					<< line.substr (line.find_last_of ('|'))
 					<< "delete order: " << batchno << std::endl;
-				order_map.erase (oit);
+				/// order_map.erase (oit);
+				/// 撤单回报已经处理
 			} else {
 				std::cout << "暂时不处理其他action: " << action << std::endl;
 				abort ();		
