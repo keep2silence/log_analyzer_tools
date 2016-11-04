@@ -59,7 +59,6 @@ static void parse_for_order_rsp (std::string& line, Order *pOrder)
 	pOrder->time  = vec[0].substr (3);
 }
 
-
 static void parse_for_match_rsp (std::string& line, Match *pMatch)
 {
 	std::vector<std::string> vec;
@@ -345,12 +344,14 @@ main (int argc, char *argv[])
 			}
 			std::string action = line.substr (pos + 2, 1);
 
+#if 0
 			/// 通过批次号找到定单
 			std::map<int, Order *>::iterator oit = order_map.find (batchno);
 			if (oit == order_map.end ()) {
 				std::cout << batchno << " not in order_map" << std::endl;
 				abort ();
 			}
+#endif
 /*
 			#define OS_ORDER            'o'           //已报入
 			#define OS_TRIG             'r'           //已触发
