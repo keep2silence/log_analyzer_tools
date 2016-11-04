@@ -19,12 +19,15 @@ main (int argc, char *argv[])
 	std::string log_file;
 	std::string target_clientid;
 	std::string target_contract;
+	std::string target_member_no;
 
-    while ((opt = getopt(argc, argv, "l:c:C:")) != -1) {
+    while ((opt = getopt(argc, argv, "l:m:c:C:")) != -1) {
         switch (opt) {
             case 'l':
 				log_file = std::string (optarg);
                 break;
+			case 'm':
+				target_member_no = std::string (optarg);
             case 'c':
 				target_clientid = std::string (optarg);
 				break;
@@ -32,10 +35,11 @@ main (int argc, char *argv[])
 				target_contract = std::string (optarg);
 				break;
             default:
-                std::cout << "usage: ./front_log_analyzer [-i] logfile" << std::endl;
-				std::cout << "usage: ./front_log_filter -l logfile -c clientid -C contract" 
-							<< std::endl;
+				std::cout << 
+				"usage: ./front_log_filter -l logfile -m member_no -c clientid -C contract" 
+				<< std::endl;
                 std::cout << "       -l 原始的前置日志文件" << std::endl;
+                std::cout << "       -m 会员号" << std::endl;
                 std::cout << "       -c 客户号" << std::endl;
                 std::cout << "       -C 合约号，可选项如果不设置全部解析" << std::endl;
                 return -1;
@@ -55,6 +59,11 @@ main (int argc, char *argv[])
 	if (target_contract.empty ()) {
 		std::cout << "keep all contracts of client: " << target_clientid << std::endl;
 	}
+
+	if (target_member_no.empty ()) {
+		std::cout << "member_no not set" << std::endl;
+		return -1;
+    }
 
 	std::set<int> sysno_set;
 	std::set<int> match_matchno_set;
@@ -108,6 +117,29 @@ main (int argc, char *argv[])
 		}
 #endif
         std::string::size_type pos = str.find (target_clientid);
+        if (pos == std::string::npos) {
+			iter = line_list.erase (iter);
+            continue;
+		} else {
+			++iter;
+			continue;
+		}
+	}
+	/// std::cout << line_list.size () << std::endl;
+
+	/// 进行会员号过滤
+	iter = line_list.begin ();
+    for (; iter != line_list.end ();) {
+        std::string str = *iter;
+#if 1
+		/// 撤单回报没有客户号信息，特殊处理，全部保留，后面会根据
+		/// 批次号进行过滤
+		if (str.find ("撤单应答") != std::string::npos) {
+			++iter;
+			continue;
+		}
+#endif
+        std::string::size_type pos = str.find (target_member_no);
         if (pos == std::string::npos) {
 			iter = line_list.erase (iter);
             continue;
