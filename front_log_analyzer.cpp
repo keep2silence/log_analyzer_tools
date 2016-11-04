@@ -326,6 +326,64 @@ main (int argc, char *argv[])
 			}
 			continue;
 		}
+
+		if (match (line, std::string ("定单状态确认")) == true) {
+			std::cout << "---------- Action " << line.substr (11, 12) 
+				<< " ----------" << std::endl; 
+			/// 找到批次号和操作码
+			std::string::size_type pos = line.find ("-B");
+			if (pos == std::string::npos) {
+				std::cout << line << " 格式错误" << std::endl;
+				abort ();
+			}
+			int batchno = atoi (line.substr (pos + 2, 8).c_str ());
+			
+			pos = line.find ("-S");
+			if (pos == std::string::npos) {
+				std::cout << line << " 格式错误" << std::endl;
+				abort ();
+			}
+			std::string action = line.substr (pos + 2, 1);
+
+			/// 通过批次号找到定单
+			std::map<int, Order *>::iterator oit = order_map.find (batchno);
+			if (oit == order_map.end ()) {
+				std::cout << batchno << " not in order_map" << std::endl;
+				abort ();
+			}
+/*
+			#define OS_ORDER            'o'           //已报入
+			#define OS_TRIG             'r'           //已触发
+			#define OS_COMPLETE         'c'           //完全成交
+			#define OS_PART             'p'           //部分成交
+			#define OS_CANCEL           'd'           //客户撤单
+			#define OS_FOKCANCEL        'k'           //FOK撤单
+			#define OS_FAKCANCEL        'a'           //FAK撤单
+			#define OS_STRIPCANCEL      's'           //批量定单撤单
+			#define OS_FORCECANCEL      'f'           //强平撤单
+			#define OS_FORCEUPD         'u'           //强平修改
+*/
+			if (action == std::string ("d")) { /// 撤单
+				std::cout << "lno: " << line_count 
+					<< line.substr (line.find_last_of ('|'))
+					<< "delete order: " << batchno << std::endl;
+				order_map.erase (oit);
+			} else {
+				std::cout << "暂时不处理其他action: " << action << std::endl;
+				abort ();		
+			}
+
+			show_all (order_map, plm);
+			if (interactive_mode == 1) {
+				std::cin >> ignored_str;
+				std::cout << 
+					"\n\033[1m\033[31m*********** dispose next pkg **********\033[37m" 
+					<< std::endl;
+			} else {
+				std::cout << "*********** dispose next pkg **********" << std::endl;
+			}
+			continue;
+		}
 	}
 	
 	std::cout << "删除重复回报前一共有" << line_count << "条日志." << std::endl;
