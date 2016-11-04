@@ -68,6 +68,7 @@ main (int argc, char *argv[])
 	std::set<int> sysno_set;
 	std::set<int> match_matchno_set;
 	std::set<int> cancel_sysno_set;
+	std::set<int> orderstatus_sysno_set;
 	std::list<std::string> line_list;
 	std::fstream fs (log_file.c_str ());
 	std::string line;
@@ -85,7 +86,15 @@ main (int argc, char *argv[])
 		/// 进行合约过滤
 		for (; iter != line_list.end ();) {
 			std::string str = *iter;
-			std::string::size_type pos = str.find (target_contract);
+		
+			/// 有的定单状态确认中没有合约号，暂时保留
+			std::string::size_type pos = str.find ("定单状态确认");
+			if (pos != std::string::npos) {
+				++iter;
+				continue;
+			}
+
+			pos = str.find (target_contract);
 			if (pos == std::string::npos) {
 				iter = line_list.erase (iter);
 				continue;
@@ -115,6 +124,13 @@ main (int argc, char *argv[])
 			++iter;
 			continue;
 		}
+
+		/// 有的定单状态确认中没有客户号，暂时保留
+		if (str.find ("定单状态确认") != std::string::npos) {
+			++iter;
+			continue;
+		}
+
 #endif
         std::string::size_type pos = str.find (target_clientid);
         if (pos == std::string::npos) {
@@ -276,6 +292,42 @@ main (int argc, char *argv[])
             sysno_set.insert (atoi (str_sysno.c_str ()));
 	}
 	
+	/// 拿系统号和“定单状态确认”中的批次号进行比较过滤
+	iter = line_list.begin ();
+    for (; iter != line_list.end ();) {
+        std::string str = *iter;
+		if (str.find ("定单状态确认") != std::string::npos) {
+			std::string::size_type pos = str.find ("-B");
+			if (pos != std::string::npos) {
+				int batchno = atoi (str.substr (pos + 2, 8).c_str ());
+				if (sysno_set.find (batchno) == sysno_set.end ()) {
+					iter = line_list.erase (iter);
+					continue;
+				}
+			} else {
+				std::cout << str << " 没有批次号" << std::endl;
+				abort ();
+			}
+		}
+		++iter;
+	}
+
+	/// 定单状态确认也需要进行重复包删除
+	iter = line_list.begin ();
+    for (; iter != line_list.end ();) {
+        std::string str = *iter;
+		if (str.find ("定单状态确认") != std::string::npos) {
+			std::string::size_type pos = str.find ("-B");
+			if (pos != std::string::npos) {
+				int batchno = atoi (str.substr (pos + 2, 8).c_str ());
+				if (orderstatus_sysno_set.insert (batchno).second == false) {
+					iter = line_list.erase (iter);
+					continue;
+				}
+			}
+		}
+		++iter;
+	}
 	/// std::cout << sysno_set.size () << std::endl;
 	/// return 0;
 
@@ -285,6 +337,10 @@ main (int argc, char *argv[])
 	iter = line_list.begin ();
     for (; iter != line_list.end (); ++iter) {
         std::string str = *iter;
+		if (str.find ("定单状态确认") != std::string::npos) {
+            std::cout << str << std::endl;
+			continue;
+		}
         std::string::size_type pos = str.find (target_clientid);
         if (pos == std::string::npos) {
             pos = str.find ("撤单应答");
