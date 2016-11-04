@@ -368,7 +368,12 @@ main (int argc, char *argv[])
 			if (action == std::string ("d")) { /// 撤单
 				std::cout << "lno: " << line_count 
 					<< line.substr (line.find_last_of ('|'))
-					<< "delete order: " << batchno << std::endl;
+					<< " delete order: " << batchno << std::endl;
+				order_map.erase (oit);
+			} else if (action == std::string ("a")) {
+				std::cout << "lno: " << line_count 
+					<< line.substr (line.find_last_of ('|'))
+					<< " FAK delete order: " << batchno << std::endl;
 				order_map.erase (oit);
 			} else {
 				std::cout << "暂时不处理其他action: " << action << std::endl;

@@ -58,6 +58,8 @@ main (int argc, char *argv[])
 
 	if (target_contract.empty ()) {
 		std::cout << "keep all contracts of client: " << target_clientid << std::endl;
+	} else {
+		target_contract = "W" + target_contract;
 	}
 
 	if (target_member_no.empty ()) {
