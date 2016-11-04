@@ -205,6 +205,7 @@ main (int argc, char *argv[])
 			continue;
 		}
 
+#if 0
 		if (match (line, std::string ("撤单应答")) == true) {
 			std::cout << "---------- Action " << line.substr (11, 12) 
 				<< " ----------" << std::endl; 
@@ -232,7 +233,7 @@ main (int argc, char *argv[])
 			}
 			continue;
 		}
-
+#endif
 		if (match (line, std::string ("成交通知")) == true) {
 			std::cout << "---------- Action " << line.substr (11, 12) 
 				<< " ----------" << std::endl; 
@@ -344,7 +345,7 @@ main (int argc, char *argv[])
 			}
 			std::string action = line.substr (pos + 2, 1);
 
-#if 0
+#if 1
 			/// 通过批次号找到定单
 			std::map<int, Order *>::iterator oit = order_map.find (batchno);
 			if (oit == order_map.end ()) {
@@ -368,8 +369,7 @@ main (int argc, char *argv[])
 				std::cout << "lno: " << line_count 
 					<< line.substr (line.find_last_of ('|'))
 					<< "delete order: " << batchno << std::endl;
-				/// order_map.erase (oit);
-				/// 撤单回报已经处理
+				order_map.erase (oit);
 			} else {
 				std::cout << "暂时不处理其他action: " << action << std::endl;
 				abort ();		
