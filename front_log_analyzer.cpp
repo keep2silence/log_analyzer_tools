@@ -116,11 +116,22 @@ static void show_all (std::map<int, Order *>& order_map, PriceLevelMap& plm)
 	std::cout << "------------ Posi Info ------------" << std::endl;
 	std::map<double, PriceLevel *, price_functor>::iterator piter = 
 		plm.pricelevel_map.begin ();
+#if 0
 	for (; piter != plm.pricelevel_map.end (); ++piter) {
 		PriceLevel *pl = piter->second;
 		std::cout << "price: " << pl->price << ", buy_vol: " << pl->buy_vol 
 			<< ", sell_vol: " << pl->sell_vol << std::endl;
 	}
+#endif
+	int buy_vol = 0, sell_vol = 0;
+	for (; piter != plm.pricelevel_map.end (); ++piter) {
+		PriceLevel *pl = piter->second;
+		buy_vol += pl->buy_vol;
+		sell_vol += pl->sell_vol;
+	}
+
+	std::cout << "buy_vol: " << buy_vol << ", sell_vol: " << sell_vol << std::endl;
+	std::cout << std::endl;
 }
 
 int
