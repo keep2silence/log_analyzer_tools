@@ -21,10 +21,10 @@ static bool match (std::string &line, std::string key)
 	return false;
 }
 
-static void split_to_vector (std::string line, std::vector<std::string> &stdvec)
+static void split_to_vector (std::string line, std::vector<std::string> &stdvec, char sep)
 {
     std::string::size_type pos;
-    while ((pos = line.find_first_of ('-')) != std::string::npos) {
+    while ((pos = line.find_first_of (sep)) != std::string::npos) {
         std::string str = line.substr (0, pos);
         stdvec.push_back (str);
         line = line.substr (pos + 1);
@@ -37,7 +37,7 @@ static void parse_for_order_rsp (std::string& line, Order *pOrder)
 {
 	std::vector<std::string> vec;
 	vec.reserve (16);
-	split_to_vector (line, vec);
+	split_to_vector (line, vec, '-');
 	
 	std::string sysno_str (vec[3]);
 	std::string flag_str  (vec[9]);
@@ -52,6 +52,11 @@ static void parse_for_order_rsp (std::string& line, Order *pOrder)
 	pOrder->contract = vec[5].substr (1); 
 	pOrder->price = atof (price_str.substr (1).c_str ());
 	pOrder->vol   = atoi (vol_str.substr (1).c_str ());
+
+	std::string s (vec[2]);
+	vec.clear ();
+	split_to_vector (s, vec, '|');
+	pOrder->time  = vec[0].substr (3);
 }
 
 
@@ -59,7 +64,7 @@ static void parse_for_match_rsp (std::string& line, Match *pMatch)
 {
 	std::vector<std::string> vec;
 	vec.reserve (16);
-	split_to_vector (line, vec);
+	split_to_vector (line, vec, '-');
 	
 	std::string sysno_str (vec[3]);
 	std::string flag_str  (vec[8]);
@@ -80,7 +85,7 @@ static void parse_for_cancel_rsp (std::string& line, Cancel *pCancel)
 {
 	std::vector<std::string> vec;
 	vec.reserve (16);
-	split_to_vector (line, vec);
+	split_to_vector (line, vec, '-');
 	
 	std::string batchno_str (vec[3]);
 	std::string vol_str (vec[7]);
@@ -108,8 +113,10 @@ static void show_all (std::map<int, Order *>& order_map, PriceLevelMap& plm)
 		Order *pOrder = riter->second;
 		std::string dir (pOrder->bsflag == BUY ? "BUY" : "SELL");
 		std::string of  (pOrder->offlag == OPEN ? "OPEN" : "OFFSET");
-		std::cout << "sysno: " << pOrder->sysno << " price: " << pOrder->price 
-			<< ", bs: " << dir << ", of: " << of << ", vol: " << pOrder->vol << std::endl;
+		std::cout << pOrder->time << ", sysno: " << pOrder->sysno 
+			<< " price: " << pOrder->price 
+			<< ", bs: " << dir << ", of: " << of 
+			<< ", vol: " << pOrder->vol << std::endl;
 	}
 
 
@@ -179,7 +186,8 @@ main (int argc, char *argv[])
 		/// 不分析定单请求，因为没有系统号
 		++line_count;
 		if (match (line, std::string ("定单应答")) == true) {
-			std::cout << "---------- Action ----------" << std::endl; 
+			std::cout << "---------- Action " << line.substr (11, 12) 
+				<< " ----------" << std::endl; 
 			Order *pOrder = new Order;
 			parse_for_order_rsp (line, pOrder);
 			std::cout << "lno: " << line_count 
@@ -199,7 +207,8 @@ main (int argc, char *argv[])
 		}
 
 		if (match (line, std::string ("撤单应答")) == true) {
-			std::cout << "---------- Action ----------" << std::endl; 
+			std::cout << "---------- Action " << line.substr (11, 12) 
+				<< " ----------" << std::endl; 
 			Cancel *pCancel = new Cancel;
 			parse_for_cancel_rsp (line, pCancel);
 
@@ -226,7 +235,8 @@ main (int argc, char *argv[])
 		}
 
 		if (match (line, std::string ("成交通知")) == true) {
-			std::cout << "---------- Action ----------" << std::endl; 
+			std::cout << "---------- Action " << line.substr (11, 12) 
+				<< " ----------" << std::endl; 
 			Match *pMatch = new Match;
 			parse_for_match_rsp (line, pMatch);
 			std::cout << "lno: " << line_count 
