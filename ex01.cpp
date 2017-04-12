@@ -2,6 +2,14 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#define UP 1
+#define DOWN 2
+
+#define BUY 10
+#define SELL 20
+
+#define MAX_NET_POSI 10
+
 class quot_t
 {
 public:
@@ -19,9 +27,29 @@ public:
 
 class signal_t
 {
-
+public:
+	signal_t ()
+	{
+		time[13] = '\0';
+	}
+	char time[16];
+	int direction;
+	std::string output_info;
 };
 
+#if 0
+class posi_t 
+{
+public:
+	int direction;
+	int volume;
+};
+
+static std::list<posi_t> buy_posi_list;
+static std::list<posi_t> sell_posi_list;
+#endif
+
+static int net_posi = 0;
 static std::deque<quot_t> quot_que;
 
 static void split_to_vector (std::string line, std::vector<std::string> &stdvec)
@@ -34,7 +62,6 @@ static void split_to_vector (std::string line, std::vector<std::string> &stdvec)
     }
     stdvec.push_back (line);
 }
-
 
 void analyze_quot (int tradedate)
 {
@@ -62,7 +89,37 @@ void analyze_quot (int tradedate)
 
 bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 {
+	/// 当前持仓超过最大允许持仓
+	if (abs (net_posi) >= MAX_NET_POSI) {
+		return true;
+	}
 
+	/// SD 不用flat信号
+	if (vec[11] == std::string ("flat")) {
+		return true;
+	}
+
+	if (vec[11] == std::string ("up")) {
+		if (atof (vec[14]) < 0.6) {
+			return false; /// 信号强度不够
+		}
+
+		memcpy (signal.time, vec[3].c_str (), 12);
+		signal.direction = UP;
+		return false;
+	}
+
+	if (vec[11] == std::string ("down")) {
+		if (atof (vec[12]) < 0.6) {
+			return false; /// 信号强度不够
+		}
+
+		memcpy (signal.time, vec[3].c_str (), 12);
+		signal.direction = DOWN;
+		return false;
+	}
+
+	abort ();
 }
 
 int 
