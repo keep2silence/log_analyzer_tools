@@ -8,32 +8,29 @@
 #define BUY 10
 #define SELL 20
 
+#define OPEN 100
+#define OFFSET 200
+
 #define MAX_NET_POSI 10
 
 class quot_t
 {
 public:
-	quot_t ()
-	{
-		time[13] = '\0';
-	}
 	double b1p;
 	double s1p;
 
 	int b1v;
 	int s1v;
-	char time[16];
+	int trade_time;
 };
 
 class signal_t
 {
 public:
-	signal_t ()
-	{
-		time[13] = '\0';
-	}
-	char time[16];
+	int trade_time;
 	int direction;
+	int TICK;
+	double match_price;
 	std::string output_info;
 };
 
@@ -51,6 +48,7 @@ static std::list<posi_t> sell_posi_list;
 
 static int net_posi = 0;
 static std::deque<quot_t> quot_que;
+static std::deque<signal_t> signal_que;
 
 static void split_to_vector (std::string line, std::vector<std::string> &stdvec)
 {
@@ -66,7 +64,8 @@ static void split_to_vector (std::string line, std::vector<std::string> &stdvec)
 void analyze_quot (int tradedate)
 {
 	quot_que.clear ();
-
+	
+	int hh, mm, ss, sss;
     std::vector<std::string> strvec;
     std::string line;
 	char quotfile[256];
@@ -82,7 +81,8 @@ void analyze_quot (int tradedate)
 		quot.b1v = atoi (strvec[14]);		
 		quot.s1p = atof (strvec[15]);		
 		quot.s1v = atoi (strvec[16]);		
-		memcpy (quot.time, strvec[1].c_str (), 12);
+		sscanf(strvec[1].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
+		quot.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
 		quot_que.push_back (quot);
 	}
 }
@@ -99,12 +99,14 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 		return true;
 	}
 
+	int hh, mm, ss, sss;
 	if (vec[11] == std::string ("up")) {
 		if (atof (vec[14]) < 0.6) {
 			return false; /// 信号强度不够
 		}
 
-		memcpy (signal.time, vec[3].c_str (), 12);
+		sscanf(strvec[3].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
+		quot.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
 		signal.direction = UP;
 		return false;
 	}
@@ -114,7 +116,8 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 			return false; /// 信号强度不够
 		}
 
-		memcpy (signal.time, vec[3].c_str (), 12);
+		sscanf(strvec[3].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
+		quot.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
 		signal.direction = DOWN;
 		return false;
 	}
@@ -166,10 +169,45 @@ V1,ContractID,Date,Time,LastPrice,MidP,LastMatchQty,MatchTotQty,STATIC_MomentumA
 		
 		/// 从上次结束的地方开始进行遍历，找到对应的时间
 		bool found = false;
+		int hh, mm, ss, sss;
+		sscanf(strvec[3].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
+		int trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
+
 		for (size_t i = current_index; i < quot_que.size (); ++i) {
-			if (memcmp (quot_que[i].time, strvec[3].c_str (), 12) == 0) {
+			quot_t& quot = quot_que[i];
+			if (quot.trade_time == trade_time) {
 				current_index = i;
 				found = true;
+
+				signal.TICK = current_index;
+
+				int open_or_offset = 0;
+				/// 根据净持仓情况决定开平
+				if (net_posi <= 0) {
+					if (signal.direction == UP) {
+						/// 买平
+						signal.match_price = quot.s1p;
+						++net_posi;
+					} else {
+						/// 卖开
+						singal.match_price = quot.b1p;
+						--net_posi;
+					}
+				} else {
+					/// 净买仓
+					if (signal.direction == UP) {
+						/// 买开
+						signal.match_price = quot.s1p;
+						++net_posi;
+					} else {
+						/// 卖平
+						signal.match_price = quot.b1p;
+						--net_posi;
+					}					
+				}
+				
+				signal.output_info += strvec[11] + "," + strvec[12] + "," + strvec[13] + "," + strvec[14];
+				signal_que.push_back (signal);
 			}
 		}
 
