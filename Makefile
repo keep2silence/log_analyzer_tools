@@ -10,7 +10,7 @@ front_login_info: front_login_info.cpp
 	g++ -o $@ $^ -g -O3 -std=c++0x
 
 ex01: ex01.cpp
-	g++ -o $@ $^ -g -std=c++0x
+	g++ -o $@ $^ -g -std=c++0x -O3
 
 debug:
 	g++ -o front_log_analyzer front_log_analyzer.cpp -g

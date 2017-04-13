@@ -104,17 +104,29 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 {
 	/// 当前持仓超过最大允许持仓
 	if (abs (net_posi) >= MAX_NET_POSI) {
-		return true;
+		if (net_posi > 0) {
+			if (vec[11] == std::string ("up")) {
+				/// printf ("max_net_posi exit\n");
+				return true;
+			}
+		} else {
+			if (vec[11] == std::string ("down")) {
+				/// printf ("max_net_posi exit\n");
+				return true;
+			}
+		}
 	}
 
 	/// SD 不用flat信号
 	if (vec[11] == std::string ("flat")) {
+		/// printf ("flat exit\n");
 		return true;
 	}
 
 	int hh, mm, ss, sss;
 	if (vec[11] == std::string ("up")) {
 		if (atof (vec[14].c_str ()) < 0.6) {
+			/// printf ("up signal exit\n");
 			return true; /// 信号强度不够
 		}
 
@@ -128,12 +140,15 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 
 	if (vec[11] == std::string ("down")) {
 		if (atof (vec[12].c_str ()) < 0.6) {
+			/// printf ("down signal exit\n");
 			return true; /// 信号强度不够
 		}
 
 		sscanf(vec[3].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
 		signal.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
 		signal.direction = DOWN;
+		signal.str_trade_time = vec[3];
+		signal.str_direction = std::string ("down");
 		return false;
 	}
 
@@ -162,12 +177,14 @@ main (int argc, char *argv[])
         strvec.clear ();
         split_to_vector (line, strvec);
 
+		int tradedate = atoi (strvec[2].c_str ());
+		/// printf ("%d, %d\n", tradedate, current_tradedate);
+
 		signal_t signal;
 		if (discard_signal (strvec, signal) == true) {
 			continue;
 		}
 
-		int tradedate = atoi (strvec[2].c_str ());
 		if (tradedate > current_tradedate) {
 			current_tradedate = tradedate;
 			analyze_quot (current_tradedate);
