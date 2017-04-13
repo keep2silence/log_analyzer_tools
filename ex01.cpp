@@ -24,6 +24,7 @@ public:
 	int b1v;
 	int s1v;
 	int trade_time;
+	int trade_date;
 };
 
 class signal_t
@@ -32,12 +33,13 @@ public:
 	int trade_time;
 	int direction;
 	int TICK;
-
+#if 0
     int b1v;
     int s1v;
 
 	double b1p;
     double s1p;
+#endif
 	double match_price;
 	std::string output_info;
 	std::string str_trade_time;
@@ -93,6 +95,7 @@ void analyze_quot (int tradedate)
 		quot.s1v = atoi (strvec[16].c_str ());
 		sscanf(strvec[1].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
 		quot.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
+		quot.trade_date = tradedate;
 		quot_que.push_back (quot);
 	}
 }
@@ -147,7 +150,7 @@ main (int argc, char *argv[])
 	int current_tradedate = 0;
 
 	std::ofstream outfs ("out.log", std::ios::trunc);
-	outfs << "Time,SignalDirection,BidPrice,BidQty,AskPrice,AskQty,MatchPrice,NetPosi,PredDirection,down,flat,up\n";
+	outfs << "Date,Time,SignalDirection,BidPrice,BidQty,AskPrice,AskQty,MatchPrice,NetPosi,PredDirection,down,flat,up\n";
 
     std::vector<std::string> strvec;
     std::string line;
@@ -184,11 +187,6 @@ main (int argc, char *argv[])
 				found = true;
 
 				signal.TICK = current_index;
-				signal.b1p = quot.b1p;
-				signal.b1v = quot.b1v;
-				signal.s1p = quot.s1p;
-				signal.s1v = quot.s1v;
-
 				int open_or_offset = 0;
 				/// 根据净持仓情况决定开平
 				if (net_posi <= 0) {
@@ -215,8 +213,9 @@ main (int argc, char *argv[])
 				}
 				
 				signal.output_info += strvec[11] + "," + strvec[12] + "," + strvec[13] + "," + strvec[14];
-				outfs << signal.str_trade_time << "," << signal.str_direction << "," <<
-					signal.b1p << "," << signal.b1v << "," << signal.s1p << "," << signal.s1v << 
+				outfs << quot.trade_date << ","  << signal.str_trade_time << "," << 
+					signal.str_direction << "," <<
+					quot.b1p << "," << quot.b1v << "," << quot.s1p << "," << quot.s1v << 
 					"," << signal.match_price << "," << net_posi << "," << signal.output_info << '\n';
 				/// signal_que.push_back (signal);
 				break;
