@@ -1,6 +1,8 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <deque>
+#include <fstream>
 
 #define UP 1
 #define DOWN 2
@@ -77,10 +79,10 @@ void analyze_quot (int tradedate)
         strvec.clear ();
         split_to_vector (line, strvec);
 
-		quot.b1p = atof (strvec[13]);		
-		quot.b1v = atoi (strvec[14]);		
-		quot.s1p = atof (strvec[15]);		
-		quot.s1v = atoi (strvec[16]);		
+		quot.b1p = atof (strvec[13].c_str ());
+		quot.b1v = atoi (strvec[14].c_str ());
+		quot.s1p = atof (strvec[15].c_str ());
+		quot.s1v = atoi (strvec[16].c_str ());
 		sscanf(strvec[1].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
 		quot.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
 		quot_que.push_back (quot);
@@ -101,23 +103,23 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 
 	int hh, mm, ss, sss;
 	if (vec[11] == std::string ("up")) {
-		if (atof (vec[14]) < 0.6) {
-			return false; /// 信号强度不够
+		if (atof (vec[14].c_str ()) < 0.6) {
+			return true; /// 信号强度不够
 		}
 
-		sscanf(strvec[3].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
-		quot.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
+		sscanf(vec[3].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
+		signal.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
 		signal.direction = UP;
 		return false;
 	}
 
 	if (vec[11] == std::string ("down")) {
-		if (atof (vec[12]) < 0.6) {
-			return false; /// 信号强度不够
+		if (atof (vec[12].c_str ()) < 0.6) {
+			return true; /// 信号强度不够
 		}
 
-		sscanf(strvec[3].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
-		quot.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
+		sscanf(vec[3].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
+		signal.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
 		signal.direction = DOWN;
 		return false;
 	}
@@ -128,17 +130,20 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 int 
 main (int argc, char *argv[])
 {
-	if (argc != 3) {
-		printf ("usage: ./ex01 quotfile exe\n");
+	if (argc != 2) {
+		printf ("usage: ./ex01 exe\n");
 		return -1;
 	}
-	int current_trade_date = 0;
+	int current_tradedate = 0;
+
+	std::ofstream outfs ("out.log", std::ios::trunc);
 
     std::vector<std::string> strvec;
     std::string line;
-    std::fstream fs (argv[2]);
+    std::fstream fs (argv[1]);
 
 	size_t current_index = 0;
+	std::getline (fs, line); /// skip title
     while (std::getline (fs, line)) {
         strvec.clear ();
         split_to_vector (line, strvec);
@@ -190,7 +195,7 @@ V1,ContractID,Date,Time,LastPrice,MidP,LastMatchQty,MatchTotQty,STATIC_MomentumA
 						++net_posi;
 					} else {
 						/// 卖开
-						singal.match_price = quot.b1p;
+						signal.match_price = quot.b1p;
 						--net_posi;
 					}
 				} else {
@@ -207,7 +212,8 @@ V1,ContractID,Date,Time,LastPrice,MidP,LastMatchQty,MatchTotQty,STATIC_MomentumA
 				}
 				
 				signal.output_info += strvec[11] + "," + strvec[12] + "," + strvec[13] + "," + strvec[14];
-				signal_que.push_back (signal);
+				/// signal_que.push_back (signal);
+				
 			}
 		}
 
@@ -215,7 +221,5 @@ V1,ContractID,Date,Time,LastPrice,MidP,LastMatchQty,MatchTotQty,STATIC_MomentumA
 			printf ("can't find quot: %s\n", strvec[3].c_str ());
 			return -1;
 		}
-
-		
 	}
 }
