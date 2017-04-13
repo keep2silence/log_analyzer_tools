@@ -30,6 +30,10 @@ public:
 class signal_t
 {
 public:
+	signal_t () :
+		trade_time (0), direction (0), TICK (0), match_price (0)
+	{}
+
 	int trade_time;
 	int direction;
 	int TICK;
@@ -180,17 +184,19 @@ main (int argc, char *argv[])
 		int tradedate = atoi (strvec[2].c_str ());
 		/// printf ("%d, %d\n", tradedate, current_tradedate);
 
-		signal_t signal;
-		if (discard_signal (strvec, signal) == true) {
-			continue;
-		}
-
 		if (tradedate > current_tradedate) {
 			current_tradedate = tradedate;
 			analyze_quot (current_tradedate);
 			current_index = 0;
+			
+			/// 新交易日，将仓位归零
+			net_posi = 0;
 		}
 		
+		signal_t signal;
+		
+		bool is_discard_signal = discard_signal (strvec, signal);
+
 		/// 从上次结束的地方开始进行遍历，找到对应的时间
 		bool found = false;
 		int hh, mm, ss, sss;
@@ -202,6 +208,18 @@ main (int argc, char *argv[])
 			if (quot.trade_time == trade_time) {
 				current_index = i;
 				found = true;
+
+				if (is_discard_signal == true) {
+					signal.output_info += strvec[11] + "," + strvec[12] + "," + 
+						strvec[13] + "," + strvec[14];
+					outfs << quot.trade_date << ","  << signal.str_trade_time << "," << 
+						signal.str_direction << "," <<
+						quot.b1p << "," << quot.b1v << "," << quot.s1p << "," << quot.s1v << 
+						"," << signal.match_price << "," << net_posi << "," << 
+						signal.output_info << '\n';
+
+					break;
+				}
 
 				signal.TICK = current_index;
 				int open_or_offset = 0;
