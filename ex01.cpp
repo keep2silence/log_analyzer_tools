@@ -32,8 +32,16 @@ public:
 	int trade_time;
 	int direction;
 	int TICK;
+
+    int b1v;
+    int s1v;
+
+	double b1p;
+    double s1p;
 	double match_price;
 	std::string output_info;
+	std::string str_trade_time;
+	std::string str_direction;
 };
 
 #if 0
@@ -110,6 +118,8 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 		sscanf(vec[3].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
 		signal.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
 		signal.direction = UP;
+		signal.str_trade_time = vec[3];
+		signal.str_direction = std::string ("up");
 		return false;
 	}
 
@@ -137,6 +147,7 @@ main (int argc, char *argv[])
 	int current_tradedate = 0;
 
 	std::ofstream outfs ("out.log", std::ios::trunc);
+	outfs << "Time,SignalDirection,BidPrice,BidQty,AskPrice,AskQty,MatchPrice,NetPosi,PredDirection,down,flat,up\n";
 
     std::vector<std::string> strvec;
     std::string line;
@@ -152,19 +163,7 @@ main (int argc, char *argv[])
 		if (discard_signal (strvec, signal) == true) {
 			continue;
 		}
-#if 0
-V1,ContractID,Date,Time,LastPrice,MidP,LastMatchQty,MatchTotQty,STATIC_MomentumA_VOL,STATIC_MomentumB_VOL,Class,predict,down,flat,up
-1,m1609,20160704,21:08:13.623,3445,3444.5,2,93914,-2,8,up,flat,0.19,0.61,0.2
-27,m1609,20160704,21:08:20.270,3445,3445.5,446,95008,220,80,flat,flat,0.42,0.51,0.07
-215,m1609,20160704,21:09:08.375,3448,3448.5,102,105498,24,57,down,flat,0.31,0.57,0.12
-2,m1609,20160704,21:08:13.847,3445,3444.5,24,93938,-89,-3,up,flat,0.31,0.55,0.14
-3,m1609,20160704,21:08:14.164,3445,3444.5,8,93946,3,100,up,flat,0.2,0.53,0.27
-4,m1609,20160704,21:08:14.405,3445,3444.5,4,93950,2,3,up,flat,0.29,0.53,0.18
-5,m1609,20160704,21:08:14.608,3445,3444.5,0,93950,0,0,up,flat,0.29,0.52,0.19
-6,m1609,20160704,21:08:14.908,3444,3444.5,12,93962,1,-3,up,flat,0.2,0.66,0.14
-7,m1609,20160704,21:08:15.163,3445,3444.5,2,93964,0,1,up,flat,0.22,0.64,0.14
-8,m1609,20160704,21:08:15.421,3445,3444.5,12,93976,3,0,up,flat,0.22,0.66,0.12
-#endif
+
 		int tradedate = atoi (strvec[2].c_str ());
 		if (tradedate > current_tradedate) {
 			current_tradedate = tradedate;
@@ -185,6 +184,10 @@ V1,ContractID,Date,Time,LastPrice,MidP,LastMatchQty,MatchTotQty,STATIC_MomentumA
 				found = true;
 
 				signal.TICK = current_index;
+				signal.b1p = quot.b1p;
+				signal.b1v = quot.b1v;
+				signal.s1p = quot.s1p;
+				signal.s1v = quot.s1v;
 
 				int open_or_offset = 0;
 				/// 根据净持仓情况决定开平
@@ -212,8 +215,11 @@ V1,ContractID,Date,Time,LastPrice,MidP,LastMatchQty,MatchTotQty,STATIC_MomentumA
 				}
 				
 				signal.output_info += strvec[11] + "," + strvec[12] + "," + strvec[13] + "," + strvec[14];
+				outfs << signal.str_trade_time << "," << signal.str_direction << "," <<
+					signal.b1p << "," << signal.b1v << "," << signal.s1p << "," << signal.s1v << 
+					"," << signal.match_price << "," << net_posi << "," << signal.output_info << '\n';
 				/// signal_que.push_back (signal);
-				
+				break;
 			}
 		}
 
