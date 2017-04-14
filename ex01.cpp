@@ -176,7 +176,7 @@ main (int argc, char *argv[])
 	}
 	int current_tradedate = 0;
 
-	std::ofstream outfs ("out.log", std::ios::trunc);
+	std::ofstream outfs;
 	outfs << "Date,Time,SignalDirection,BidPrice,BidQty,AskPrice,AskQty,MatchPrice,NetPosi,PredDirection,down,flat,up\n";
 
     std::vector<std::string> strvec;
@@ -196,7 +196,16 @@ main (int argc, char *argv[])
 			current_tradedate = tradedate;
 			analyze_quot (current_tradedate);
 			current_index = 0;
-			
+		
+			if (outfs.is_open () == true) {
+				outfs.close ();
+			}			
+
+			char fname[256];
+			snprintf (fname, 256, "%d_out.log", current_tradedate);
+			outfs.open (fname, std::ios::trunc);
+			outfs << "Date,Time,SignalDirection,BidPrice,BidQty,AskPrice,AskQty,MatchPrice,NetPosi,PredDirection,down,flat,up\n";
+
 			/// 新交易日，将仓位归零
 			net_posi = 0;
 		}
