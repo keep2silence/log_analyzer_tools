@@ -63,8 +63,9 @@ static std::list<posi_t> sell_posi_list;
 #endif
 
 static int net_posi = 0;
-static std::deque<quot_t> quot_que;
-static std::deque<signal_t> signal_que;
+/// static std::deque<quot_t> quot_que;
+/// static std::deque<signal_t> signal_que;
+static std::unordered_map<std::string, quot_t> quot_map;
 
 static void split_to_vector (std::string line, std::vector<std::string> &stdvec)
 {
@@ -79,7 +80,7 @@ static void split_to_vector (std::string line, std::vector<std::string> &stdvec)
 
 void analyze_quot (int tradedate)
 {
-	quot_que.clear ();
+	quot_map.clear ();
 	
 	int hh, mm, ss, sss;
     std::vector<std::string> strvec;
@@ -100,21 +101,25 @@ void analyze_quot (int tradedate)
 		sscanf(strvec[1].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
 		quot.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
 		quot.trade_date = tradedate;
-		quot_que.push_back (quot);
+		/// quot_que.push_back (quot);
+		quot_map.insert (std::make_pair (strvec[1], quot));
 	}
 }
 
 bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 {
+	signal.str_trade_time = vec[3];
 	/// 当前持仓超过最大允许持仓
 	if (abs (net_posi) >= MAX_NET_POSI) {
 		if (net_posi > 0) {
 			if (vec[11] == std::string ("up")) {
+				signal.str_direction = std::string ("up");
 				/// printf ("max_net_posi exit\n");
 				return true;
 			}
 		} else {
 			if (vec[11] == std::string ("down")) {
+				signal.str_direction = std::string ("down");
 				/// printf ("max_net_posi exit\n");
 				return true;
 			}
@@ -124,6 +129,7 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 	/// SD 不用flat信号
 	if (vec[11] == std::string ("flat")) {
 		/// printf ("flat exit\n");
+		signal.str_direction = std::string ("flat");
 		return true;
 	}
 
@@ -131,6 +137,7 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 	if (vec[11] == std::string ("up")) {
 		if (atof (vec[14].c_str ()) < 0.6) {
 			/// printf ("up signal exit\n");
+			signal.str_direction = std::string ("up");
 			return true; /// 信号强度不够
 		}
 
@@ -144,6 +151,7 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 
 	if (vec[11] == std::string ("down")) {
 		if (atof (vec[12].c_str ()) < 0.6) {
+			signal.str_direction = std::string ("down");
 			/// printf ("down signal exit\n");
 			return true; /// 信号强度不够
 		}
@@ -198,17 +206,15 @@ main (int argc, char *argv[])
 		bool is_discard_signal = discard_signal (strvec, signal);
 
 		/// 从上次结束的地方开始进行遍历，找到对应的时间
-		bool found = false;
 		int hh, mm, ss, sss;
 		sscanf(strvec[3].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
 		int trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
 	
-		current_index = 0; /// 改成轮询
-		for (size_t i = current_index; i < quot_que.size (); ++i) {
-			quot_t& quot = quot_que[i];
+		std::unordered_map<std::string, quot_t>::iterator iter = quot_map.find (strvec[3]);
+		if (iter != quot_map.end ()) {
+			/// quot_t& quot = quot_que[i];
+			quot_t& quot = iter->second;
 			if (quot.trade_time == trade_time) {
-				current_index = i;
-				found = true;
 
 				if (is_discard_signal == true) {
 					signal.output_info += strvec[11] + "," + strvec[12] + "," + 
@@ -219,10 +225,10 @@ main (int argc, char *argv[])
 						"," << signal.match_price << "," << net_posi << "," << 
 						signal.output_info << '\n';
 
-					break;
+					continue;
 				}
 
-				signal.TICK = current_index;
+				/// signal.TICK = current_index;
 				int open_or_offset = 0;
 				/// 根据净持仓情况决定开平
 				if (net_posi <= 0) {
@@ -254,11 +260,9 @@ main (int argc, char *argv[])
 					quot.b1p << "," << quot.b1v << "," << quot.s1p << "," << quot.s1v << 
 					"," << signal.match_price << "," << net_posi << "," << signal.output_info << '\n';
 				/// signal_que.push_back (signal);
-				break;
+				continue;
 			}
-		}
-
-		if (found == false) {
+		} else {
 			printf ("can't find quot: %s\n", strvec[3].c_str ());
 			return -1;
 		}
