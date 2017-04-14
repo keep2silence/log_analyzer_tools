@@ -202,7 +202,8 @@ main (int argc, char *argv[])
 		int hh, mm, ss, sss;
 		sscanf(strvec[3].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
 		int trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
-
+	
+		current_index = 0; /// ¸Ä³ÉÂÖÑ¯
 		for (size_t i = current_index; i < quot_que.size (); ++i) {
 			quot_t& quot = quot_que[i];
 			if (quot.trade_time == trade_time) {
