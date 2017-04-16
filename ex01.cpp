@@ -1,4 +1,5 @@
 #include <vector>
+#include <list>
 #include <unordered_map>
 #include <unordered_set>
 #include <deque>
@@ -13,7 +14,7 @@
 #define OPEN 100
 #define OFFSET 200
 
-#define MAX_NET_POSI 10
+#define MAX_NET_POSI 20
 
 class quot_t
 {
@@ -50,17 +51,16 @@ public:
 	std::string str_direction;
 };
 
-#if 0
 class posi_t 
 {
 public:
 	int direction;
 	int volume;
+	double match_price;
 };
 
-static std::list<posi_t> buy_posi_list;
-static std::list<posi_t> sell_posi_list;
-#endif
+static std::list<posi_t *> buy_posi_list;
+static std::list<posi_t *> sell_posi_list;
 
 static int net_posi = 0;
 /// static std::deque<quot_t> quot_que;
@@ -176,6 +176,15 @@ main (int argc, char *argv[])
 	}
 	int current_tradedate = 0;
 
+	
+	char fname[256];
+	snprintf (fname, 256, "out_stat.log", current_tradedate);
+	std::ofstream out_stat_fs (fname, std::ios::trunc);
+	out_stat_fs << "Date,TradeTimes,Profit\n";
+
+	int trade_times = 0;
+	double profit = 0;
+
 	std::ofstream outfs;
 	outfs << "Date,Time,SignalDirection,BidPrice,BidQty,AskPrice,AskQty,MatchPrice,NetPosi,PredDirection,down,flat,up\n";
 
@@ -193,6 +202,9 @@ main (int argc, char *argv[])
 		/// printf ("%d, %d\n", tradedate, current_tradedate);
 
 		if (tradedate > current_tradedate) {
+			if (current_tradedate > 0) {
+				out_stat_fs << current_tradedate << "," << trade_times << "," << profit << '\n';
+			}
 			current_tradedate = tradedate;
 			analyze_quot (current_tradedate);
 			current_index = 0;
@@ -201,13 +213,16 @@ main (int argc, char *argv[])
 				outfs.close ();
 			}			
 
-			char fname[256];
 			snprintf (fname, 256, "%d_out.log", current_tradedate);
 			outfs.open (fname, std::ios::trunc);
 			outfs << "Date,Time,SignalDirection,BidPrice,BidQty,AskPrice,AskQty,MatchPrice,NetPosi,PredDirection,down,flat,up\n";
 
+
 			/// 新交易日，将仓位归零
 			net_posi = 0;
+	
+			profit = 0;
+			trade_times = 0;
 		}
 		
 		signal_t signal;
@@ -237,6 +252,7 @@ main (int argc, char *argv[])
 					continue;
 				}
 
+				++trade_times;
 				/// signal.TICK = current_index;
 				int open_or_offset = 0;
 				/// 根据净持仓情况决定开平
@@ -245,10 +261,23 @@ main (int argc, char *argv[])
 						/// 买平
 						signal.match_price = quot.s1p;
 						++net_posi;
+
+						/// 平仓计算盈亏，先开先平
+						while (sell_posi_list.empty () == false) {
+							posi_t *posi = sell_posi_list.front ();
+							sell_posi_list.pop_front ();
+							profit += (posi->match_price - signal.match_price);
+							break;
+						}
 					} else {
 						/// 卖开
 						signal.match_price = quot.b1p;
 						--net_posi;
+						posi_t *posi = new posi_t;
+						posi->volume = 1;
+						posi->direction = SELL;
+						posi->match_price = quot.b1p;
+						sell_posi_list.push_back (posi);
 					}
 				} else {
 					/// 净买仓
@@ -256,10 +285,22 @@ main (int argc, char *argv[])
 						/// 买开
 						signal.match_price = quot.s1p;
 						++net_posi;
+						posi_t *posi = new posi_t;
+						posi->volume = 1;
+						posi->direction = BUY;
+						posi->match_price = quot.s1p;
+						sell_posi_list.push_back (posi);
 					} else {
 						/// 卖平
 						signal.match_price = quot.b1p;
 						--net_posi;
+						/// 平仓计算盈亏，先开先平
+						while (buy_posi_list.empty () == false) {
+							posi_t *posi = buy_posi_list.front ();
+							buy_posi_list.pop_front ();
+							profit += (signal.match_price - posi->match_price);
+							break;
+						}
 					}					
 				}
 				
