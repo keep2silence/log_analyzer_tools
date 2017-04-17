@@ -109,6 +109,7 @@ void analyze_quot (int tradedate)
 		quot.trade_date = tradedate;
 		if (hh == 14 && mm == 55 && ss == 0 && force_offset_quot.b1v == -1) {
 			force_offset_quot = quot;
+			printf ("14:55 force offset, b1p: %f, s1p: %f\n", quot.b1p, quot.s1p);
 		}
 		/// quot_que.push_back (quot);
 		quot_map.insert (std::make_pair (strvec[1], quot));
@@ -301,6 +302,8 @@ main (int argc, char *argv[])
 							profit += (posi->match_price - signal.match_price);
 							delete posi;
 							printf ("sell_posi_list size: %zu\n", sell_posi_list.size ());
+							printf ("BUY offset price: %f, %f, profit: %f\n", 
+								quot.s1p, posi->match_price, profit);
 							break;
 						}
 					} else {
@@ -311,6 +314,7 @@ main (int argc, char *argv[])
 						posi->volume = 1;
 						posi->direction = SELL;
 						posi->match_price = quot.b1p;
+						printf ("SELL open price: %f\n", quot.b1p);
 						sell_posi_list.push_back (posi);
 					}
 				} else if (net_posi > 0) {
@@ -323,6 +327,7 @@ main (int argc, char *argv[])
 						posi->volume = 1;
 						posi->direction = BUY;
 						posi->match_price = quot.s1p;
+						printf ("BUY open price: %f\n", quot.s1p);
 						buy_posi_list.push_back (posi);
 					} else {
 						/// ÂôÆ½
@@ -334,6 +339,8 @@ main (int argc, char *argv[])
 							buy_posi_list.pop_front ();
 							profit += (signal.match_price - posi->match_price);
 							delete posi;
+							printf ("SELL offset price: %f, %f, profit: %f\n", 
+								quot.b1p, posi->match_price, profit);
 							printf ("buy_posi_list size: %zu\n", buy_posi_list.size ());
 							break;
 						}
@@ -348,6 +355,7 @@ main (int argc, char *argv[])
 						posi->volume = 1;
 						posi->direction = BUY;
 						posi->match_price = quot.s1p;
+						printf ("BUY open price: %f\n", quot.s1p);
 						buy_posi_list.push_back (posi);
 					} else {
 						/// Âô¿ª
@@ -357,6 +365,7 @@ main (int argc, char *argv[])
 						posi->volume = 1;
 						posi->direction = SELL;
 						posi->match_price = quot.b1p;
+						printf ("SELL open price: %f\n", quot.b1p);
 						sell_posi_list.push_back (posi);
 					}					
 				}
