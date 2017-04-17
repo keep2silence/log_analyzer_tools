@@ -211,7 +211,6 @@ main (int argc, char *argv[])
 		/// printf ("%d, %d\n", tradedate, current_tradedate);
 
 		if (tradedate > current_tradedate) {
-#if 0
 			/// 交易日结束，全部进行对价平仓，进行盈亏计算
 			if (net_posi > 0) {
 				assert (buy_posi_list.empty () == false);
@@ -234,7 +233,7 @@ main (int argc, char *argv[])
 				}
 				sell_posi_list.clear ();
 			}
-#endif
+
 			if (current_tradedate > 0) {
 				out_stat_fs << current_tradedate << "," << trade_times << "," << profit << '\n';
 			}
@@ -273,7 +272,7 @@ main (int argc, char *argv[])
 			if (quot.trade_time == trade_time) {
 
 				if (is_discard_signal == true) {
-#if 0
+#if 1
 					signal.output_info += strvec[11] + "," + strvec[12] + "," + 
 						strvec[13] + "," + strvec[14];
 					outfs << quot.trade_date << ","  << signal.str_trade_time << "," << 
