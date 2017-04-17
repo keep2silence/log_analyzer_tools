@@ -178,7 +178,7 @@ main (int argc, char *argv[])
 
 	
 	char fname[256];
-	snprintf (fname, 256, "out_stat.log", current_tradedate);
+	snprintf (fname, 256, "out_stat.log");
 	std::ofstream out_stat_fs (fname, std::ios::trunc);
 	out_stat_fs << "Date,TradeTimes,Profit\n";
 
