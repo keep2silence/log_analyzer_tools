@@ -5,6 +5,8 @@
 #include <deque>
 #include <fstream>
 
+#include <assert.h>
+
 #define UP 1
 #define DOWN 2
 
@@ -14,7 +16,7 @@
 #define OPEN 100
 #define OFFSET 200
 
-#define MAX_NET_POSI 20
+#define MAX_NET_POSI 10
 
 class quot_t
 {
@@ -67,6 +69,9 @@ static int net_posi = 0;
 /// static std::deque<signal_t> signal_que;
 static std::unordered_map<std::string, quot_t> quot_map;
 
+/// 交易日快结束前进行强平的行情
+static quot_t force_offset_quot;
+
 static void split_to_vector (std::string line, std::vector<std::string> &stdvec)
 {
     std::string::size_type pos;
@@ -90,6 +95,7 @@ void analyze_quot (int tradedate)
     std::fstream fs (quotfile);
 
 	quot_t quot;
+	force_offset_quot.b1v = -1;
     while (std::getline (fs, line)) {
         strvec.clear ();
         split_to_vector (line, strvec);
@@ -101,6 +107,9 @@ void analyze_quot (int tradedate)
 		sscanf(strvec[1].c_str (), "%d:%d:%d.%d", &hh, &mm, &ss, &sss);
 		quot.trade_time = (hh * 3600 + mm * 60 + ss) * 1000 + sss;
 		quot.trade_date = tradedate;
+		if (hh == 14 && mm == 55 && ss == 0 && force_offset_quot.b1v == -1) {
+			force_offset_quot = quot;
+		}
 		/// quot_que.push_back (quot);
 		quot_map.insert (std::make_pair (strvec[1], quot));
 	}
@@ -135,7 +144,7 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 
 	int hh, mm, ss, sss;
 	if (vec[11] == std::string ("up")) {
-		if (atof (vec[14].c_str ()) < 0.6) {
+		if (atof (vec[14].c_str ()) + 0.001 < 0.6) {
 			/// printf ("up signal exit\n");
 			signal.str_direction = std::string ("up");
 			return true; /// 信号强度不够
@@ -150,7 +159,7 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 	}
 
 	if (vec[11] == std::string ("down")) {
-		if (atof (vec[12].c_str ()) < 0.6) {
+		if (atof (vec[12].c_str ()) + 0.001 < 0.6) {
 			signal.str_direction = std::string ("down");
 			/// printf ("down signal exit\n");
 			return true; /// 信号强度不够
@@ -202,9 +211,34 @@ main (int argc, char *argv[])
 		/// printf ("%d, %d\n", tradedate, current_tradedate);
 
 		if (tradedate > current_tradedate) {
+#if 0
+			/// 交易日结束，全部进行对价平仓，进行盈亏计算
+			if (net_posi > 0) {
+				assert (buy_posi_list.empty () == false);
+				for (auto iter = buy_posi_list.begin ();
+					iter != buy_posi_list.end (); ++iter) {
+					posi_t *posi = *iter;
+					
+					profit += (force_offset_quot.s1p - posi->match_price);	
+					delete posi;
+				}
+				buy_posi_list.clear ();
+			} else if (net_posi < 0) {
+				assert (sell_posi_list.empty () == false);
+				for (auto iter = sell_posi_list.begin ();
+					iter != sell_posi_list.end (); ++iter) {
+					posi_t *posi = *iter;
+					profit += (posi->match_price - force_offset_quot.b1p);	
+
+					delete posi;
+				}
+				sell_posi_list.clear ();
+			}
+#endif
 			if (current_tradedate > 0) {
 				out_stat_fs << current_tradedate << "," << trade_times << "," << profit << '\n';
 			}
+
 			current_tradedate = tradedate;
 			analyze_quot (current_tradedate);
 			current_index = 0;
@@ -217,7 +251,6 @@ main (int argc, char *argv[])
 			outfs.open (fname, std::ios::trunc);
 			outfs << "Date,Time,SignalDirection,BidPrice,BidQty,AskPrice,AskQty,MatchPrice,NetPosi,PredDirection,down,flat,up\n";
 
-
 			/// 新交易日，将仓位归零
 			net_posi = 0;
 	
@@ -226,7 +259,6 @@ main (int argc, char *argv[])
 		}
 		
 		signal_t signal;
-		
 		bool is_discard_signal = discard_signal (strvec, signal);
 
 		/// 从上次结束的地方开始进行遍历，找到对应的时间
@@ -241,6 +273,7 @@ main (int argc, char *argv[])
 			if (quot.trade_time == trade_time) {
 
 				if (is_discard_signal == true) {
+#if 0
 					signal.output_info += strvec[11] + "," + strvec[12] + "," + 
 						strvec[13] + "," + strvec[14];
 					outfs << quot.trade_date << ","  << signal.str_trade_time << "," << 
@@ -248,7 +281,7 @@ main (int argc, char *argv[])
 						quot.b1p << "," << quot.b1v << "," << quot.s1p << "," << quot.s1v << 
 						"," << signal.match_price << "," << net_posi << "," << 
 						signal.output_info << '\n';
-
+#endif
 					continue;
 				}
 
@@ -256,7 +289,7 @@ main (int argc, char *argv[])
 				/// signal.TICK = current_index;
 				int open_or_offset = 0;
 				/// 根据净持仓情况决定开平
-				if (net_posi <= 0) {
+				if (net_posi < 0) {
 					if (signal.direction == UP) {
 						/// 买平
 						signal.match_price = quot.s1p;
@@ -267,6 +300,8 @@ main (int argc, char *argv[])
 							posi_t *posi = sell_posi_list.front ();
 							sell_posi_list.pop_front ();
 							profit += (posi->match_price - signal.match_price);
+							delete posi;
+							printf ("sell_posi_list size: %zu\n", sell_posi_list.size ());
 							break;
 						}
 					} else {
@@ -279,7 +314,7 @@ main (int argc, char *argv[])
 						posi->match_price = quot.b1p;
 						sell_posi_list.push_back (posi);
 					}
-				} else {
+				} else if (net_posi > 0) {
 					/// 净买仓
 					if (signal.direction == UP) {
 						/// 买开
@@ -289,7 +324,7 @@ main (int argc, char *argv[])
 						posi->volume = 1;
 						posi->direction = BUY;
 						posi->match_price = quot.s1p;
-						sell_posi_list.push_back (posi);
+						buy_posi_list.push_back (posi);
 					} else {
 						/// 卖平
 						signal.match_price = quot.b1p;
@@ -299,10 +334,34 @@ main (int argc, char *argv[])
 							posi_t *posi = buy_posi_list.front ();
 							buy_posi_list.pop_front ();
 							profit += (signal.match_price - posi->match_price);
+							delete posi;
+							printf ("buy_posi_list size: %zu\n", buy_posi_list.size ());
 							break;
 						}
 					}					
+				} else { /// net_posi == 0
+					/// 净买仓
+					if (signal.direction == UP) {
+						/// 买开
+						signal.match_price = quot.s1p;
+						++net_posi;
+						posi_t *posi = new posi_t;
+						posi->volume = 1;
+						posi->direction = BUY;
+						posi->match_price = quot.s1p;
+						buy_posi_list.push_back (posi);
+					} else {
+						/// 卖开
+						signal.match_price = quot.b1p;
+						--net_posi;
+						posi_t *posi = new posi_t;
+						posi->volume = 1;
+						posi->direction = SELL;
+						posi->match_price = quot.b1p;
+						sell_posi_list.push_back (posi);
+					}					
 				}
+
 				
 				signal.output_info += strvec[11] + "," + strvec[12] + "," + strvec[13] + "," + strvec[14];
 				outfs << quot.trade_date << ","  << signal.str_trade_time << "," << 
