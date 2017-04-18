@@ -16,7 +16,8 @@
 #define OPEN 100
 #define OFFSET 200
 
-#define MAX_NET_POSI 10
+#define MAX_NET_POSI 3
+#define PROB 0.48
 
 class quot_t
 {
@@ -145,7 +146,7 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 
 	int hh, mm, ss, sss;
 	if (vec[11] == std::string ("up")) {
-		if (atof (vec[14].c_str ()) + 0.001 < 0.6) {
+		if (atof (vec[14].c_str ()) + 0.001 < PROB) {
 			/// printf ("up signal exit\n");
 			signal.str_direction = std::string ("up");
 			return true; /// 信号强度不够
@@ -160,7 +161,7 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 	}
 
 	if (vec[11] == std::string ("down")) {
-		if (atof (vec[12].c_str ()) + 0.001 < 0.6) {
+		if (atof (vec[12].c_str ()) + 0.001 < PROB) {
 			signal.str_direction = std::string ("down");
 			/// printf ("down signal exit\n");
 			return true; /// 信号强度不够
