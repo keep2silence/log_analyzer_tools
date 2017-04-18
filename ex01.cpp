@@ -19,6 +19,9 @@
 #define MAX_NET_POSI 3
 #define PROB 0.48
 
+static int max_net_posi = -1;
+static double prob = 0;
+
 class quot_t
 {
 public:
@@ -121,7 +124,7 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 {
 	signal.str_trade_time = vec[3];
 	/// 当前持仓超过最大允许持仓
-	if (abs (net_posi) >= MAX_NET_POSI) {
+	if (abs (net_posi) >= max_net_posi) {
 		if (net_posi > 0) {
 			if (vec[11] == std::string ("up")) {
 				signal.str_direction = std::string ("up");
@@ -146,7 +149,7 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 
 	int hh, mm, ss, sss;
 	if (vec[11] == std::string ("up")) {
-		if (atof (vec[14].c_str ()) + 0.001 < PROB) {
+		if (atof (vec[14].c_str ()) + 0.001 < prob) {
 			/// printf ("up signal exit\n");
 			signal.str_direction = std::string ("up");
 			return true; /// 信号强度不够
@@ -161,7 +164,7 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 	}
 
 	if (vec[11] == std::string ("down")) {
-		if (atof (vec[12].c_str ()) + 0.001 < PROB) {
+		if (atof (vec[12].c_str ()) + 0.001 < prob) {
 			signal.str_direction = std::string ("down");
 			/// printf ("down signal exit\n");
 			return true; /// 信号强度不够
@@ -181,15 +184,17 @@ bool discard_signal (std::vector<std::string>& vec, signal_t& signal)
 int 
 main (int argc, char *argv[])
 {
-	if (argc != 2) {
-		printf ("usage: ./ex01 exe\n");
+	if (argc != 4) {
+		printf ("usage: ./ex01 exe count prob\n");
 		return -1;
 	}
 	int current_tradedate = 0;
-
 	
+	max_net_posi = atoi (argv[2]);
+	prob = atof (argv[3]);
+
 	char fname[256];
-	snprintf (fname, 256, "out_stat.log");
+	snprintf (fname, 256, "out_stat.csv");
 	std::ofstream out_stat_fs (fname, std::ios::trunc);
 	out_stat_fs << "Date,TradeTimes,Profit\n";
 
@@ -248,7 +253,7 @@ main (int argc, char *argv[])
 				outfs.close ();
 			}			
 
-			snprintf (fname, 256, "%d_out.log", current_tradedate);
+			snprintf (fname, 256, "%d_out.csv", current_tradedate);
 			outfs.open (fname, std::ios::trunc);
 			outfs << "Date,Time,SignalDirection,BidPrice,BidQty,AskPrice,AskQty,MatchPrice,NetPosi,PredDirection,down,flat,up\n";
 
