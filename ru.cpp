@@ -57,7 +57,8 @@ static bool check_matched (std::vector<std::string>& strvec)
 		posi->match_price = atof (strvec[11].c_str ()); // 卖价成交
 		posi->volume = 1;
 
-		printf ("%s:%d %s,%s BUY OPEN price: %f\n", __FILE__, __LINE__,
+		///printf ("%s:%d %s,%s BUY OPEN price: %.2f\n", __FILE__, __LINE__,
+		printf ("%s,%s BUY OPEN price: %.2f\n", 
 			strvec[1].c_str (), strvec[2].c_str (), posi->match_price);		
 		buy_posi_list.push_back (posi);
 		return true;
@@ -69,7 +70,8 @@ static bool check_matched (std::vector<std::string>& strvec)
 		posi->match_price = atof (strvec[9].c_str ()); // 买价成交
 		posi->volume = 1;
 		
-		printf ("%s:%d %s,%s SELL OPEN price: %f\n", __FILE__, __LINE__,
+		/// printf ("%s:%d %s,%s SELL OPEN price: %.2f\n", __FILE__, __LINE__,
+		printf ("%s,%s SELL OPEN price: %.2f\n",
 			strvec[1].c_str (), strvec[2].c_str (), posi->match_price);		
 		sell_posi_list.push_back (posi);
 		return true;
@@ -91,8 +93,7 @@ static void check_offset (std::vector<std::string>& strvec)
 			/// 买平
 			double offset_price = atof (strvec[11].c_str ());
 			profit += (posi->match_price - offset_price);
-			printf ("%s:%d %s,%s BUY OFFSET price: %f : %f, profit: %f, sum_profit: %f\n", 
-				__FILE__, __LINE__,
+			printf ("%s,%s BUY OFFSET price: %.2f : %.2f, profit: %.2f, sum_profit: %.2f\n", 
 				strvec[1].c_str (), strvec[2].c_str (), posi->match_price, 
 				offset_price, posi->match_price - offset_price, profit);		
 		}
@@ -107,8 +108,8 @@ static void check_offset (std::vector<std::string>& strvec)
 			/// 卖平
 			double offset_price = atof (strvec[9].c_str ());
 			profit += (offset_price - posi->match_price);
-			printf ("%s:%d %s,%s SELL OFFSET price: %f : %f, profit: %f, sum_profit: %f\n", 
-				__FILE__, __LINE__,
+			printf ("%s,%s SELL OFFSET price: %.2f : %.2f, profit: %.2f, sum_profit: %.2f\n", 
+				/// __FILE__, __LINE__,
 				strvec[1].c_str (), strvec[2].c_str (), offset_price, 
 				posi->match_price, offset_price - posi->match_price, profit);
 		}
@@ -135,8 +136,8 @@ static void check_force_offset (std::vector<std::string>& strvec)
 
 		double offset_price = atof (strvec[11].c_str ());
 		profit += (posi->match_price - offset_price);
-		printf ("%s:%d %s,%s BUY FORCE OFFSET price: %f : %f, profit: %f, sum_profit: %f\n", 
-			__FILE__, __LINE__,
+		printf ("%s,%s BUY FORCE OFFSET price: %.2f : %.2f, profit: %.2f, sum_profit: %.2f\n", 
+			/// __FILE__, __LINE__,
 			strvec[1].c_str (), strvec[2].c_str (), posi->match_price, 
 			offset_price, posi->match_price - offset_price, profit);		
 	}
@@ -147,8 +148,8 @@ static void check_force_offset (std::vector<std::string>& strvec)
 
 		double offset_price = atof (strvec[9].c_str ());
 		profit += (offset_price - posi->match_price);
-		printf ("%s:%d %s,%s SELL FORCE OFFSET price: %f : %f, profit: %f, sum_profit: %f\n", 
-			__FILE__, __LINE__,
+		printf ("%s,%s SELL FORCE OFFSET price: %.2f : %.2f, profit: %.2f, sum_profit: %.2f\n", 
+			/// __FILE__, __LINE__,
 			strvec[1].c_str (), strvec[2].c_str (), offset_price, 
 			posi->match_price, offset_price - posi->match_price, profit);
 	}
@@ -197,8 +198,10 @@ main (int argc, char *argv[])
 			current_tradedate = tradedate;
 			profit = 0;
 			/// 应该被强平了
-			assert (buy_posi_list.empty () == true);
-			assert (sell_posi_list.empty () == true);
+			/// assert (buy_posi_list.empty () == true);
+			/// assert (sell_posi_list.empty () == true);
+			buy_posi_list.clear ();
+			sell_posi_list.clear ();
 			trade_times = 0;
 		}
 
