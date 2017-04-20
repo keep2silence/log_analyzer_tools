@@ -85,7 +85,8 @@ public:
 enum biz_target_type
 {
 	target_type_continue = 1,	/// ¼ÌĞø´¦Àí£¬¾ø´ó²¿·Ö¶¼ÊôÓÚÕâÖÖÀàĞÍ
-	target_type_accept,		 	/// ´¦Àí½áÊøºó²»ĞèÒª½øÒ»²½´¦Àí£¬ÖÕÖ¹ËæºóÒ»ÇĞ¹æÔò´¦Àí
+	target_type_accept = (1 << 1), 	/// ´´¦Àí½áÊøºó²»ĞèÒª½øÒ»²½´¦Àí£¬ÖÕÖ¹ËæºóÒ»ÇĞ¹æÔò´¦Àí
+	target_type_chain = (1 << 2), 	/// ´ËtargetÊÇÒ»¸öchain
 };
 
 class biz_target
@@ -192,8 +193,17 @@ public:
 		}
 
 		_ptarget = ptarget;
+
+		if (ptarget->get_target_type () == target_type_accept) {
+
+		}
         return true;
     }
+
+	biz_target* get_target ()
+	{
+		return _ptarget;
+	}
 
 public:
 	uint32_t _rule_position;
@@ -207,7 +217,9 @@ class biz_chain : public biz_target
 {
 public:
 	biz_chain ()
-	{}
+	{
+		set_target_type (target_type_chain);
+	}
 
 	biz_ret handle_input (biz_data *pdata)
 	{
@@ -259,6 +271,11 @@ public:
 		/// Ç°ÃæÒÑ¾­×öÁËpositionºÏÀíĞÔ¼ì²é
 		rules_list.push_back (prule);
 		
+		/// Èç¹û´ËÁ´ÖĞÓĞÒ»¸öruleµÄtargetÊÇacceptÀàĞÍµÄ£¬Õû¸öÁ´Ò²ÊÇacceptÀàĞÍµÄ
+		if (prule->get_target ()->get_target_type () == target_type_accept) {
+			set_target_type (target_type_accept);
+		}
+
 		return false;
 	}
 
