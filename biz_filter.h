@@ -66,12 +66,16 @@ public:
 	{}
 
 	/// 注册时调用
-	virtual bool match_init (std::vector<biz_param>& params) = 0;
+	virtual bool match_init (std::vector<biz_param>& params)
+	{
+		return true;
+	}
 	
 	/// 返回匹配true或不匹配false
 	virtual bool handle_input (biz_data *data) = 0;
 	/// 注销前调用
-	virtual void match_exit () = 0;
+	virtual void match_exit () 
+	{}
 
 	std::string _desc;
 	std::string _name;
@@ -87,11 +91,21 @@ enum biz_target_type
 class biz_target
 {
 public:
+	biz_target () 
+	: _type (target_type_continue)
+	{}
+
+	biz_target (biz_target_type target_type)
+	: _type (target_type)
+	{}
+
 	virtual ~biz_target ()
 	{}
 
 	virtual bool target_init (std::vector<biz_param>& params)
-	{}
+	{
+		return true;
+	}
 	
 	virtual biz_ret handle_input (biz_data *data) = 0;
 
@@ -101,6 +115,11 @@ public:
 	biz_target_type get_target_type ()
 	{
 		return _type;
+	}
+
+	void set_target_type (biz_target_type type)
+	{
+		_type = type;
 	}
 
 public:
@@ -187,6 +206,9 @@ public:
 class biz_chain : public biz_target
 {
 public:
+	biz_chain ()
+	{}
+
 	biz_ret handle_input (biz_data *pdata)
 	{
 		biz_ret ret;
