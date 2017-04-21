@@ -7,39 +7,57 @@
 #include <string>
 #include <unordered_map>
 
+#include <unistd.h>
+#include <stdio.h>
+#include <limits.h>
+#include <assert.h>
+
 #define TODO \
 do {	\
 	printf ("%s:%d this function will implement in the future.\n", __FILE__, __LINE__); \
 } while (0)
 
-/// Ò»¸ötableÖĞÓĞN¸öchain£¬Ò»¸öchainÓĞN¸örule£¬Ò»¸öruleÖĞÓĞN¸ömatch£¬
-/// Ò»¸öruleÖĞÓĞÁ½¸ötarget£¬Æ¥ÅäºóÖ´ĞĞµÄtarget£¬²»Æ¥ÅäÖ´ĞĞµÄtarget
+/// ä¸€ä¸ªtableä¸­æœ‰Nä¸ªchainï¼Œä¸€ä¸ªchainæœ‰Nä¸ªruleï¼Œä¸€ä¸ªruleä¸­æœ‰Nä¸ªmatchï¼Œ
+/// ä¸€ä¸ªruleä¸­æœ‰ä¸¤ä¸ªtargetï¼ŒåŒ¹é…åæ‰§è¡Œçš„targetï¼Œä¸åŒ¹é…æ‰§è¡Œçš„target
 enum biz_ret
 {
-	RET_OK = 1,		/// ´¦ÀíÕıÈ·
-	RET_ACCEPT = (1 << 2),		/// ´¦ÀíÍê³É£¬²»ĞèÒªËæºóµÄrule½øÒ»²½´¦Àí
-	RET_CONTINUE = (1 << 3),	/// ±¾rule´¦Àí½áÊø£¬ĞèÒªËæºóµÄrule½øÒ»²½´¦Àí
-	/// RET_DROP   = (1 << 5),		/// 
-	RET_FAILED = (1 << 31),		/// ´¦Àí´íÎó
+	RET_OK = 1,		/// å¤„ç†æ­£ç¡®
+	RET_ACCEPT = (1 << 2),		/// å¤„ç†å®Œæˆï¼Œä¸éœ€è¦éšåçš„ruleè¿›ä¸€æ­¥å¤„ç†
+	RET_CONTINUE = (1 << 3),	/// æœ¬ruleå¤„ç†ç»“æŸï¼Œéœ€è¦éšåçš„ruleè¿›ä¸€æ­¥å¤„ç†
+
+	/// å½“matchä¸åŒ¹é…åï¼Œå¸Œæœ›æ‰§è¡Œé”™è¯¯å¤„ç†çš„target
+	RET_DO_ERR_TARGET = (1 << 4),
+	RET_FAILED = (1 << 31)		/// å¤„ç†é”™è¯¯
 };
 
 class CFTCPField;
 
-/// biz_matchÊäÈëÊä³öĞÅÏ¢
+/// biz_matchè¾“å…¥è¾“å‡ºä¿¡æ¯
 class biz_data
 {
 public:
+	biz_data ()
+	: field (NULL), field_id (UINT_MAX), ret (RET_OK)
+	{
+		/// è¿™é‡Œä¸æ¸…ç©ºerror_msgå’Œprivate_dataäº†ï¼Œä¸æ˜¯æ‰€æœ‰ä¸šåŠ¡éƒ½éœ€è¦
+		/// ä½¿ç”¨è¿™ä¸¤ä¸ªå­—æ®µï¼Œé¿å…æ€§èƒ½æ¶ˆè€—
+	}
+
 	CFTCPField *field; 
-	uint32_t field_id;			/// ÒµÎñÏµÍ³ÖĞÃ¿¸öfield¶¼ÓĞÒ»¸öÎ¨Ò»µÄ±àºÅ
-	biz_ret ret;				/// ÒµÎñ´¦Àí·µ»Ø£¬Ö¸µ¼ÏÂÒ»²½ÈçºÎ´¦Àí
-	char error_msg[64];			/// ÒµÎñ´¦Àí·µ»Ø´íÎóĞÅÏ¢
-	char private_data[64];		/// Î´À´ÒµÎñ»á¸ü¸´ÔÓ£¬Ô¤ÁôÒ»²¿·Ö¿Õ¼ä£¬¶ÔÕâ²¿·Ö¿Õ¼äµÄ
-								/// ½â¶ÁÓÉÇ°ºóÁ½¸öruleÀ´Ğ­ÉÌ
+	uint32_t field_id;			/// ä¸šåŠ¡ç³»ç»Ÿä¸­æ¯ä¸ªfieldéƒ½æœ‰ä¸€ä¸ªå”¯ä¸€çš„ç¼–å·
+
+	/// å¦‚æœå¸Œæœ›åé¢çš„è§„åˆ™ç»§ç»­å¤„ç†retè¿”å›RET_CONTINUE
+	/// å¦‚æœä¸å¸Œæœ›åé¢çš„è§„åˆ™ç»§ç»­å¤„ç†retè¿”å›RET_ACCEPT
+	biz_ret ret;				/// ä¸šåŠ¡å¤„ç†è¿”å›ï¼ŒæŒ‡å¯¼ä¸‹ä¸€æ­¥å¦‚ä½•å¤„ç†
+
+	char error_msg[64];			/// ä¸šåŠ¡å¤„ç†è¿”å›é”™è¯¯ä¿¡æ¯
+	char private_data[64];		/// æœªæ¥ä¸šåŠ¡ä¼šæ›´å¤æ‚ï¼Œé¢„ç•™ä¸€éƒ¨åˆ†ç©ºé—´ï¼Œå¯¹è¿™éƒ¨åˆ†ç©ºé—´çš„
+								/// è§£è¯»ç”±å‰åä¸¤ä¸ªruleæ¥åå•†
 };
 
-/// ¸÷ÖÖmatchºÍtarget¶¼¿ÉÒÔÓĞÅäÖÃ²ÎÊı£¬ÀíÏëÇé¿öÏÂÖ§³ÖÍ¨¹ıÅäÖÃÀ´¸Ä±ä
-/// matchºÍtargetµÄĞĞÎª
-/// ²ÎÊıÀàĞÍÖ»¹æ¶¨¼¸ÖÖ
+/// å„ç§matchå’Œtargetéƒ½å¯ä»¥æœ‰é…ç½®å‚æ•°ï¼Œç†æƒ³æƒ…å†µä¸‹æ”¯æŒé€šè¿‡é…ç½®æ¥æ”¹å˜
+/// matchå’Œtargetçš„è¡Œä¸º
+/// å‚æ•°ç±»å‹åªè§„å®šå‡ ç§
 enum biz_param_type
 {
 	biz_param_type_char = 1,
@@ -53,9 +71,9 @@ class biz_param
 public:
 	std::string param_name;
 	biz_param_type param_type;
-	uint32_t param_index;	/// biz_param×îºÃ·Åµ½vectorÖĞ£¬´Ë²ÎÊıÎªvectorÏÂ±ê
-	uint32_t param_count;	/// ÓĞ¿ÉÄÜ´«µİparam_typeÀàĞÍµÄÊı×é
-	char value[64]; 		/// Ê¹ÓÃÕß±£Ö¤sizeof (param_type) * param_count < 64
+	uint32_t param_index;	/// biz_paramæœ€å¥½æ”¾åˆ°vectorä¸­ï¼Œæ­¤å‚æ•°ä¸ºvectorä¸‹æ ‡
+	uint32_t param_count;	/// æœ‰å¯èƒ½ä¼ é€’param_typeç±»å‹çš„æ•°ç»„
+	char value[64]; 		/// ä½¿ç”¨è€…ä¿è¯sizeof (param_type) * param_count < 64
 };
 
 /// 
@@ -65,15 +83,15 @@ public:
 	virtual ~biz_match ()
 	{}
 
-	/// ×¢²áÊ±µ÷ÓÃ
+	/// æ³¨å†Œæ—¶è°ƒç”¨
 	virtual bool match_init (std::vector<biz_param>& params)
 	{
 		return true;
 	}
 	
-	/// ·µ»ØÆ¥Åätrue»ò²»Æ¥Åäfalse
+	/// è¿”å›åŒ¹é…trueæˆ–ä¸åŒ¹é…false
 	virtual bool handle_input (biz_data *data) = 0;
-	/// ×¢ÏúÇ°µ÷ÓÃ
+	/// æ³¨é”€å‰è°ƒç”¨
 	virtual void match_exit () 
 	{}
 
@@ -84,9 +102,10 @@ public:
 
 enum biz_target_type
 {
-	target_type_continue = 1,	/// ¼ÌĞø´¦Àí£¬¾ø´ó²¿·Ö¶¼ÊôÓÚÕâÖÖÀàĞÍ
-	target_type_accept = (1 << 1), 	/// ´´¦Àí½áÊøºó²»ĞèÒª½øÒ»²½´¦Àí£¬ÖÕÖ¹ËæºóÒ»ÇĞ¹æÔò´¦Àí
-	target_type_chain = (1 << 2), 	/// ´ËtargetÊÇÒ»¸öchain
+	target_type_continue = 1,	/// ç»§ç»­å¤„ç†ï¼Œç»å¤§éƒ¨åˆ†éƒ½å±äºè¿™ç§ç±»å‹
+	target_type_accept = (1 << 1), 	/// å¤„ç†ç»“æŸåä¸éœ€è¦è¿›ä¸€æ­¥å¤„ç†ï¼Œç»ˆæ­¢éšåä¸€åˆ‡è§„åˆ™å¤„ç†
+	target_type_chain = (1 << 2), 	/// æ­¤targetæ˜¯ä¸€ä¸ªchain
+	target_type_err = (1 << 3)	/// æ­¤targetæ˜¯å¤„ç†é”™è¯¯çš„targetï¼Œé”™è¯¯å¤„ç†ç»“æŸåï¼Œç»ˆæ­¢éšåä¸€åˆ‡è§„åˆ™å¤„ç†
 };
 
 class biz_target
@@ -130,37 +149,72 @@ public:
 	biz_target_type _type;
 };
 
-/// Ò»Ìõ¹æÔòÓĞN¸ömatch£¬matchÖ®¼äÊÇand¹ØÏµ£¬Ö»ÓĞËùÓĞmatchÈ«²¿Æ¥Åä
-/// ºó²ÅÄÜËãÆ¥Åä
+/// ä¸€æ¡è§„åˆ™æœ‰Nä¸ªmatchï¼Œmatchä¹‹é—´æ˜¯andå…³ç³»ï¼Œåªæœ‰æ‰€æœ‰matchå…¨éƒ¨åŒ¹é…
+/// åæ‰èƒ½ç®—åŒ¹é…. ä¸€æ¡è§„åˆ™æœ‰ä¸¤ä¸ªtargetï¼Œä¸€ä¸ªæ˜¯åŒ¹é…åæ‰§è¡Œçš„target
+/// ä¸€ä¸ªæ˜¯ä¸åŒ¹é…æ‰§è¡Œçš„targetï¼Œåˆ›å»ºruleæ—¶éƒ½éœ€è¦è¿›è¡Œæ³¨å†Œ
 class biz_rule 
 {
 public:
+	biz_rule (std::string rule_name)
+	: _rule_position (UINT_MAX), _ptarget (NULL), _perr_target (NULL), _name (rule_name)
+	{}
+
+	/// åœ¨æ³¨å†Œruleä¹‹å‰ï¼Œéœ€è¦å°†targetå’Œmatchéƒ½å®‰è£…å¥½
+	bool rule_init ()
+	{
+		if (_ptarget == NULL) {
+			printf ("%s:%d no target in this rule.\n", __FILE__, __LINE__);
+			return false;
+		}
+
+		if (_perr_target == NULL) {
+			printf ("%s:%d no err target in this rule.\n", __FILE__, __LINE__);
+			return false;
+		}
+
+		if (_matches_list.empty () == true) {
+			printf ("%s:%d no match in this rule.\n", __FILE__, __LINE__);
+			return false;
+		}
+	}
+
 	biz_ret handle_input (biz_data *pdata) 
 	{
 		for (auto iter = _matches_list.begin ();
 			iter != _matches_list.end (); ++iter) {
 			biz_match *pmatch = *iter;
 			bool ret = pmatch->handle_input (pdata);
-			if (ret == false) { /// ²»Æ¥ÅäÓÉÏÂÒ»Ìõ¹æÔò´¦Àí
-				return RET_CONTINUE;/// Ò»Ìõ¹æÔòÖĞµÄmatchÊÇand¹ØÏµ
+			if (ret == false) { /// ä¸åŒ¹é…ç”±matchæŒ‡å¯¼å…·ä½“æ€ä¹ˆåš
+				/// å¦‚æœå¸Œæœ›åé¢çš„è§„åˆ™ç»§ç»­å¤„ç†pdata->retè¿”å›RET_CONTINUE
+				/// å¦‚æœä¸å¸Œæœ›åé¢çš„è§„åˆ™ç»§ç»­å¤„ç†pdata->retè¿”å›RET_ACCEPT
+				if (pdata->ret != RET_DO_ERR_TARGET) {
+					return pdata->ret;/// ä¸€æ¡è§„åˆ™ä¸­çš„matchæ˜¯andå…³ç³»
+				} else {
+					break;
+				}
 			}
 		}
 
-		/// Æ¥Åäºó½øĞĞtarget´¦Àí£¬Èç¹ûtargetÊÇÒ»Ìõchain£¬ÄÇÃ´»áµ÷ÓÃ
-		/// ÕâÌõchainµÄhandle_input
-		_ptarget->handle_input (pdata);
-		
-		if (_ptarget->get_target_type () == target_type_accept) {
+		/// åŒ¹é…åè¿›è¡Œtargetå¤„ç†ï¼Œå¦‚æœtargetæ˜¯ä¸€æ¡chainï¼Œé‚£ä¹ˆä¼šè°ƒç”¨
+		/// è¿™æ¡chainçš„handle_input
+		if (pdata->ret != RET_DO_ERR_TARGET) {
+			_ptarget->handle_input (pdata);
+			if (_ptarget->get_target_type () == target_type_accept) {
+				return RET_ACCEPT;
+			}
+		} else {
+			/// é”™è¯¯targetå¤„ç†åï¼Œåé¢çš„è§„åˆ™ä¸å†å¤„ç†
+			_perr_target->handle_input (pdata);
 			return RET_ACCEPT;
 		}
-
-		/// ºÍiptables²»Í¬µÄÊÇÒ»Ìõ¹æÔò´¦Àí½áÊøºóÄ¬ÈÏÇé¿öÏÂÊÇ¼ÌĞø´¦Àí
-		/// iptablesÊÇÖÕÖ¹´¦Àí
+		
+		/// å’Œiptablesä¸åŒçš„æ˜¯ä¸€æ¡è§„åˆ™å¤„ç†ç»“æŸåé»˜è®¤æƒ…å†µä¸‹æ˜¯ç»§ç»­å¤„ç†
+		/// iptablesæ˜¯ç»ˆæ­¢å¤„ç†
 		return RET_CONTINUE;
 	}
 
-	/// °´ÕÕÖ´ĞĞË³Ğò½øĞĞ×¢²á£¬matchÖ®¼äÊÇand¹ØÏµ£¬Ö»ÓĞÈ«²¿match¶¼
-	/// Æ¥Åä²ÅÈÏÎªÆ¥Åä
+	/// æŒ‰ç…§æ‰§è¡Œé¡ºåºè¿›è¡Œæ³¨å†Œï¼Œmatchä¹‹é—´æ˜¯andå…³ç³»ï¼Œåªæœ‰å…¨éƒ¨matchéƒ½
+	/// åŒ¹é…æ‰è®¤ä¸ºåŒ¹é…
 	bool register_match (biz_match *pmatch, std::vector<biz_param>& params)
 	{
 		if (pmatch == NULL) {
@@ -191,12 +245,13 @@ public:
 				__FILE__, __LINE__, ptarget->_name.c_str ());
 			return false;
 		}
-
-		_ptarget = ptarget;
-
-		if (ptarget->get_target_type () == target_type_accept) {
-
+		
+		if (ptarget->get_target_type () == target_type_err) {
+			_perr_target = ptarget;
+		} else {
+			_ptarget = ptarget;
 		}
+
         return true;
     }
 
@@ -205,14 +260,29 @@ public:
 		return _ptarget;
 	}
 
+	/// ä¸æ˜¯å…³é”®è·¯å¾„ï¼Œä¸è€ƒè™‘æ€§èƒ½
+#if 0
+	void set_name (std::string name) 
+	{
+		assert (name.empty () == false);
+		_name = name;
+	}
+#endif
+	std::string get_name ()
+	{
+		return _name;
+	}
+
 public:
 	uint32_t _rule_position;
 	std::list<biz_match *> _matches_list;
 	std::string _desc;
 	biz_target *_ptarget;
+	biz_target *_perr_target;
+	std::string _name;   /// è§„åˆ™åå­—ï¼Œç”±äºéœ€è¦æ­¤åå­—æ¥è¿›è¡Œåˆ é™¤æ“ä½œï¼Œéœ€è¦ç¡®ä¿åŒä¸€é“¾ä¸­è§„åˆ™åä¸å†²çª
 };
 
-/// target¿ÉÒÔÊÇÒ»ÌõĞÂµÄÁ´£¬ËùÒÔÒª¼Ì³Ğ
+/// targetå¯ä»¥æ˜¯ä¸€æ¡æ–°çš„é“¾ï¼Œæ‰€ä»¥è¦ç»§æ‰¿
 class biz_chain : public biz_target
 {
 public:
@@ -232,21 +302,21 @@ public:
 				continue;
 			}
 
-			/// ²»ÊÇRET_CONTINUEµÄ¹æÔò¶¼Òª·µ»Ø¸ø¸¸Á´´¦Àí
-			/// ÓĞ¿ÉÄÜÔÚ×ÓÁ´µ÷ÓÃ£¬ĞèÒª·µ»Ø¸ø¸¸Á´£¬¸¸Á´Ò²ĞèÒª
-			/// Õâ¸ö±êÖ¾£¬·ñÔò¼ÌĞø»á´¦Àí¸¸Á´ÉÏµÄ¹æÔò
+			/// ä¸æ˜¯RET_CONTINUEçš„è§„åˆ™éƒ½è¦è¿”å›ç»™çˆ¶é“¾å¤„ç†
+			/// æœ‰å¯èƒ½åœ¨å­é“¾è°ƒç”¨ï¼Œéœ€è¦è¿”å›ç»™çˆ¶é“¾ï¼Œçˆ¶é“¾ä¹Ÿéœ€è¦
+			/// è¿™ä¸ªæ ‡å¿—ï¼Œå¦åˆ™ç»§ç»­ä¼šå¤„ç†çˆ¶é“¾ä¸Šçš„è§„åˆ™
 			return ret;
 		}
 
 		return RET_CONTINUE;
 	}
 
-	/// ¹æÔò¿ÉÒÔ¼Óµ½ÈÎÒâÎ»ÖÃ£¬ÒµÎñº¬ÒåÓĞÊ¹ÓÃÈËÔ±±£Ö¤
-	/// position == 0£¬ÔÚÁ´±íÊ×²¿¼ÓÈë
-	/// position == 1£¬ÔÚµÚÒ»¸ö¹æÔòºó¼ÓÈë
-	/// position == rules_list.size ()£¬ÔÚÁ´±íÎ²¼ÓÈë
-	/// ×¢Òâ: Á¬Ğø¼ÓÈë¶àÌõ¹æÔòÊ±£¬¹æÔòÁ´±íµÄÎ»ÖÃÒ»Ö±ÔÚ±ä£¬±ÈÈçÒÔÇ°µÚÒ»Ìõ¹æÔò£¬ÓĞ¿ÉÄÜ
-	/// ±ä³ÉµÚ¶şÌõ£¬ĞèÒª×ĞÏ¸²Ù×÷
+	/// è§„åˆ™å¯ä»¥åŠ åˆ°ä»»æ„ä½ç½®ï¼Œä¸šåŠ¡å«ä¹‰æœ‰ä½¿ç”¨äººå‘˜ä¿è¯
+	/// position == 0ï¼Œåœ¨é“¾è¡¨é¦–éƒ¨åŠ å…¥
+	/// position == 1ï¼Œåœ¨ç¬¬ä¸€ä¸ªè§„åˆ™ååŠ å…¥
+	/// position == rules_list.size ()ï¼Œåœ¨é“¾è¡¨å°¾åŠ å…¥
+	/// æ³¨æ„: è¿ç»­åŠ å…¥å¤šæ¡è§„åˆ™æ—¶ï¼Œè§„åˆ™é“¾è¡¨çš„ä½ç½®ä¸€ç›´åœ¨å˜ï¼Œæ¯”å¦‚ä»¥å‰ç¬¬ä¸€æ¡è§„åˆ™ï¼Œæœ‰å¯èƒ½
+	/// å˜æˆç¬¬äºŒæ¡ï¼Œéœ€è¦ä»”ç»†æ“ä½œ
 	bool register_rule (biz_rule *prule, size_t position) 
 	{
 		if (position < 0 || position > rules_list.size ()) {
@@ -261,6 +331,15 @@ public:
 			return false;
 		}
 
+		/// è¿›è¡Œè§„åˆ™åé‡å¤æ€§æ£€æŸ¥
+		for (auto iter = rules_list.begin (); iter != rules_list.end (); ++iter) {
+			if ((*iter)->get_name () == prule->get_name ()) {
+				printf ("%s:%d rule: %s register twice.\n",
+						__FILE__, __LINE__,  prule->get_name ().c_str ());
+				return false;
+			}
+		}
+
 		size_t current_position = 0;
 		for (auto iter = rules_list.begin (); iter != rules_list.end (); ++iter) {
 			if (current_position++ == position) {
@@ -268,10 +347,10 @@ public:
 				return true;
 			}
 		}
-		/// Ç°ÃæÒÑ¾­×öÁËpositionºÏÀíĞÔ¼ì²é
+		/// å‰é¢å·²ç»åšäº†positionåˆç†æ€§æ£€æŸ¥
 		rules_list.push_back (prule);
 		
-		/// Èç¹û´ËÁ´ÖĞÓĞÒ»¸öruleµÄtargetÊÇacceptÀàĞÍµÄ£¬Õû¸öÁ´Ò²ÊÇacceptÀàĞÍµÄ
+		/// å¦‚æœæ­¤é“¾ä¸­æœ‰ä¸€ä¸ªruleçš„targetæ˜¯acceptç±»å‹çš„ï¼Œæ•´ä¸ªé“¾ä¹Ÿæ˜¯acceptç±»å‹çš„
 		if (prule->get_target ()->get_target_type () == target_type_accept) {
 			set_target_type (target_type_accept);
 		}
@@ -279,8 +358,8 @@ public:
 		return false;
 	}
 
-	/// Ä¿Ç°»¹²»ÏëÊ¹ÓÃidÀ´É¾³ırule£¬¶øÊÇÍ¨¹ıÎ»ÖÃÀ´Ö´ĞĞÉ¾³ı
-	/// ×¢Òâ£ºµÚÒ»Ìõ¹æÔòµÄposition == 1£¬ÆäËûË³Ğò±àºÅ
+	/// ç›®å‰è¿˜ä¸æƒ³ä½¿ç”¨idæ¥åˆ é™¤ruleï¼Œè€Œæ˜¯é€šè¿‡ä½ç½®æ¥æ‰§è¡Œåˆ é™¤
+	/// æ³¨æ„ï¼šç¬¬ä¸€æ¡è§„åˆ™çš„position == 1ï¼Œå…¶ä»–é¡ºåºç¼–å·
 	bool unregister_rule (size_t position)
 	{
 		if (position < 1 || position > rules_list.size ()) {
@@ -292,6 +371,19 @@ public:
 		size_t current_position = 0;
 		for (auto iter = rules_list.begin (); iter != rules_list.end (); ++iter) {
 			if (++current_position == position) {
+				rules_list.erase (iter);
+				return true;
+			}
+		}
+		
+		return false;
+	}
+
+	/// æ ¹æ®è§„åˆ™ååˆ é™¤ruleï¼Œæ–¹ä¾¿ä½¿ç”¨ï¼Œä½†éœ€è¦ç”¨æˆ·ç¡®ä¿è§„åˆ™åçš„å”¯ä¸€æ€§
+	bool unregister_rule (std::string rule_name) 
+	{
+		for (auto iter = rules_list.begin (); iter != rules_list.end (); ++iter) {
+			if ((*iter)->_name == rule_name) {
 				rules_list.erase (iter);
 				return true;
 			}
@@ -312,10 +404,10 @@ public:
 
 private:
 	std::string _chain_name;
-	int32_t _chain_id;	/// Ã¿ÌõÁ´È«¾ÖÎ¨Ò»id£¬¾ÖÏŞÓÚ±íÖĞ£¬²»Í¬±íÖ®¼äÓĞ¿ÉÄÜÓĞÏàÍ¬chain_id
-						/// ²»»á³öÏÖ¿ç±íÌøµ½ÆäËû±íµÄÁ´ÕâÖÖÇé¿ö
+	int32_t _chain_id;	/// æ¯æ¡é“¾å…¨å±€å”¯ä¸€idï¼Œå±€é™äºè¡¨ä¸­ï¼Œä¸åŒè¡¨ä¹‹é—´æœ‰å¯èƒ½æœ‰ç›¸åŒchain_id
+						/// ä¸ä¼šå‡ºç°è·¨è¡¨è·³åˆ°å…¶ä»–è¡¨çš„é“¾è¿™ç§æƒ…å†µ
 	std::string _desc;
-	/// Ò»¸öchainÉÏµÄrule¿ÉÒÔ²åÈëĞÂµÄrule£¬¿ÉÒÔÉ¾³ı
+	/// ä¸€ä¸ªchainä¸Šçš„ruleå¯ä»¥æ’å…¥æ–°çš„ruleï¼Œå¯ä»¥åˆ é™¤
 	std::list<biz_rule *> rules_list;
 };
 
@@ -327,8 +419,8 @@ public:
 	{
 	}
 
-	/// chain_idÊÇÒ»ÕÅ±íÖĞµÄÄ³ÌõÁ´£¬Ê¹ÓÃÊ±ĞèÒª×¢Òâ²»ÒªÖ±½ÓÌø×ªµ½×ÓÁ´£¬
-	/// ÒµÎñ»á´íÎó
+	/// chain_idæ˜¯ä¸€å¼ è¡¨ä¸­çš„æŸæ¡é“¾ï¼Œä½¿ç”¨æ—¶éœ€è¦æ³¨æ„ä¸è¦ç›´æ¥è·³è½¬åˆ°å­é“¾ï¼Œ
+	/// ä¸šåŠ¡ä¼šé”™è¯¯
 	void handle_input (biz_data *pdata, int32_t chain_id)
 	{
 		auto iter = _chain_map.find (chain_id); 
@@ -370,9 +462,9 @@ public:
 		return true;
 	}
 
-	/// chain_name ±ØĞëÎ¨Ò»£¬chain²»ÄÜÖØ¸´×¢²á
-	/// tableÎªÃ¿Ò»¸öchain·ÖÅäÎ¨Ò»id£¬µ±ÔÚÁ´¼äÌø×ªÊ±²»ÎşÉüĞÔÄÜ
-	/// return -1£¬±íÊ¾³ö´í
+	/// chain_name å¿…é¡»å”¯ä¸€ï¼Œchainä¸èƒ½é‡å¤æ³¨å†Œ
+	/// tableä¸ºæ¯ä¸€ä¸ªchainåˆ†é…å”¯ä¸€idï¼Œå½“åœ¨é“¾é—´è·³è½¬æ—¶ä¸ç‰ºç‰²æ€§èƒ½
+	/// return -1ï¼Œè¡¨ç¤ºå‡ºé”™
 	int32_t register_chain (biz_chain* pchain) 
 	{
 		for (auto iter = _chain_map.begin (); 
@@ -390,13 +482,49 @@ public:
 	}
 
 private:
-	int32_t _table_id; /// È«¾ÖÎ¨Ò»µÄ±íid
+	int32_t _table_id; /// å…¨å±€å”¯ä¸€çš„è¡¨id
 	std::string _table_name;
 	int32_t _chain_id;
 
-	/// ÓĞ¿ÉÄÜ½«ÕûÌõchainÉ¾³ı
+	/// æœ‰å¯èƒ½å°†æ•´æ¡chainåˆ é™¤
 	/// <chain_id, chain>
 	std::unordered_map<int32_t, biz_chain *> _chain_map;
+};
+
+/// å®šä¹‰è‹¥å¹²ä¸ªå¸¸ç”¨matchå’Œtarget
+/// æ— æ¡ä»¶åŒ¹é…
+class true_match : public biz_match 
+{
+public:
+	bool handle_input (biz_data *pdata) 
+	{
+		return true;
+	}
+};
+
+class false_match : public biz_match
+{
+public:
+	bool handle_input (biz_data *pdata) 
+	{
+		return false;
+	}
+};
+
+/// ä¸šåŠ¡ä¸Šå‡ºç°ä¸¥é‡é”™è¯¯ï¼Œéœ€è¦é€€å‡ºæ—¶ä½¿ç”¨ï¼Œè¿™é‡Œä¸è¿›è¡Œæ—¥å¿—è®°å½•
+/// åªåœ¨æ§åˆ¶å°ä¸Šæ‰“å°é€€å‡ºåŸå› ä¿¡æ¯
+class severe_err_target : public biz_target
+{
+public:
+	biz_ret handle_input (biz_data *pdata)
+	{
+		printf ("%s:%d severe err: %s, exit.\n", 
+				__FILE__, __LINE__, pdata->error_msg);
+		fflush (stdout);
+		sync ();
+		abort ();
+		return RET_FAILED;
+	}
 };
 
 #endif

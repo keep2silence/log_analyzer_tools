@@ -34,7 +34,7 @@ private:
 	std::string _who;
 };
 
-/// ×î¼òµ¥µÄµ¥Á´±í²âÊÔ
+/// æœ€ç®€å•çš„å•é“¾è¡¨æµ‹è¯•
 static void simple_chain_test ()
 {
 	biz_table table ("biz_filter_test_table", 1);
@@ -43,21 +43,21 @@ static void simple_chain_test ()
 
 #if 1
 	std::vector<biz_param> param_vec;
-	biz_rule *prule = new biz_rule;
+	biz_rule *prule = new biz_rule ("first_rule");
 	t1_match *pt1_match = new t1_match ("pt1_match");
 	prule->register_match (pt1_match, param_vec);
 	t1_target *pt1_target = new t1_target ("pt1_target");
 ///	pt1_target->set_target_type (target_type_continue);
 	prule->register_target (pt1_target, param_vec);
 
-	biz_rule *prule2 = new biz_rule;
+	biz_rule *prule2 = new biz_rule ("second_rule");
 	t1_match *pt1_match2 = new t1_match ("pt1_match2");
 	prule2->register_match (pt1_match2, param_vec);
 	t1_target *pt1_target2 = new t1_target ("pt1_target2");
 ///	pt1_target2->set_target_type (target_type_accept);
 	prule2->register_target (pt1_target2, param_vec);
 
-	biz_rule *prule3 = new biz_rule;
+	biz_rule *prule3 = new biz_rule ("third_rule");
 	t1_match *pt1_match3 = new t1_match ("pt1_match3");
 	prule3->register_match (pt1_match3, param_vec);
 	t1_target *pt1_target3 = new t1_target ("pt1_target3");
@@ -74,8 +74,8 @@ static void simple_chain_test ()
 	t1_target *ptarget1_chain2 = new t1_target ("chain2_target1");
 	t1_target *ptarget2_chain2 = new t1_target ("chain2_target2");
 ptarget2_chain2->set_target_type (target_type_accept);
-	biz_rule *prule1_chain2 = new biz_rule;
-	biz_rule *prule2_chain2 = new biz_rule;
+	biz_rule *prule1_chain2 = new biz_rule ("chain2_first_rule");
+	biz_rule *prule2_chain2 = new biz_rule ("chain2_second_rule"); 
 	prule1_chain2->register_match (pmatch1_chain2, param_vec);
 	prule1_chain2->register_target (ptarget1_chain2, param_vec);
 	prule2_chain2->register_match (pmatch2_chain2, param_vec);
@@ -86,9 +86,9 @@ ptarget2_chain2->set_target_type (target_type_accept);
 	
 /// pchain2->set_target_type (target_type_accept);
 
-	/// ´Ërule½«°Ñchain2µ±×÷Ò»¸ötarget£¬ÑéÖ¤Ò»ÏÂchain2½áÊø´¦Àíºó»á¼ÌĞø´¦Àíchain1
-	/// ÖĞ»¹Î´Ö´ĞĞµÄrule£¬»òÕßchain2ÖĞÓĞÒ»¸öACCEPT£¬ÄÇÃ´chain1Ò²²»»á¼ÌĞø´¦Àí
-	biz_rule *prule_with_chain = new biz_rule;
+	/// æ­¤ruleå°†æŠŠchain2å½“ä½œä¸€ä¸ªtargetï¼ŒéªŒè¯ä¸€ä¸‹chain2ç»“æŸå¤„ç†åä¼šç»§ç»­å¤„ç†chain1
+	/// ä¸­è¿˜æœªæ‰§è¡Œçš„ruleï¼Œæˆ–è€…chain2ä¸­æœ‰ä¸€ä¸ªACCEPTï¼Œé‚£ä¹ˆchain1ä¹Ÿä¸ä¼šç»§ç»­å¤„ç†
+	biz_rule *prule_with_chain = new biz_rule ("rule_with_chain_target");
 	t1_match *pmatch1_with_chain = new t1_match ("chain1_match1_with_chain");
 	prule_with_chain->register_match (pmatch1_with_chain, param_vec);
 	prule_with_chain->register_target (pchain2, param_vec); /// chain as target
