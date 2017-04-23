@@ -50,6 +50,7 @@ public:
 	/// 如果不希望后面的规则继续处理ret返回RET_ACCEPT
 	biz_ret ret;				/// 业务处理返回，指导下一步如何处理
 
+	int32_t ret_code;			/// 有些业务需要返回错误码
 	char error_msg[64];			/// 业务处理返回错误信息
 	char private_data[64];		/// 未来业务会更复杂，预留一部分空间，对这部分空间的
 								/// 解读由前后两个rule来协商
